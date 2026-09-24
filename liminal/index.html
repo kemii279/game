@@ -175,7 +175,7 @@
     <p class="sub" id="ovSub">LIMINAL SPACE</p>
     <p class="lore" id="ovLore">眠りと目覚めのあいだに、ハザマがある。<br>ここでは何も食べなくていい。ただ、ひどく眠い。<br>眠りきったとき、あなたはこの部屋の一部になる。<br>現実から紛れこんだ<em>色のある異物</em>を七つ集めて、目を覚ませ。</p>
     <p class="go" id="go">クリックして入る</p>
-    <p class="keys" id="keys">体は勝手に前へ歩く。マウスで向きを変えるだけ<br>左クリック：物資を使う　右クリック：つねる　ホイール：ライト<br>（キーでも可　1 コーヒー　2 ガム　3 目薬　Q つねる　F ライト　E メモを閉じる）<br>ヘッドホン推奨</p>
+    <p class="keys" id="keys">体は勝手に前へ歩く。マウスで向きを変えるだけ<br>左クリック：物資を使う　右クリック：つねる　ホイール：ライト<br>メモは左クリックで閉じる<br>ヘッドホン推奨</p>
   </div>
 </div>
 <script>
@@ -553,7 +553,7 @@ SPR.vend = (() => {
 })();
 const SUPPLIES = {
   coffee: { name: "缶コーヒー", spr: SPR.coffee, text: "まだ冷たい。誰がここへ持ちこんだのだろう。" },
-  gum: { name: "ミントガム", spr: SPR.gum, text: "包み紙に、知らない字で「ねるな」と書いてある。［2］で噛む。" },
+  gum: { name: "ミントガム", spr: SPR.gum, text: "包み紙に、知らない字で「ねるな」と書いてある。左クリックで使える。" },
   battery: { name: "乾電池", spr: SPR.battery, text: "懐中電灯の予備になる。" },
   drops: { name: "目薬", spr: SPR.drops, text: "さすと、しばらく眠気がにぶくなる。" },
 };
@@ -1848,18 +1848,19 @@ function buildInv() {
   });
   refreshInv();
 }
+const FINE = matchMedia("(pointer: fine)").matches;
 function refreshInv() {
   INV.forEach(s => {
     const b = $("inv-" + s.kind), lab = b.querySelector(".cnt");
-    if (s.kind === "pinch") { lab.innerHTML = `<kbd>Q</kbd>`; return; }
+    if (s.kind === "pinch") { lab.innerHTML = `<kbd>${FINE ? "右クリック" : "タップ"}</kbd>`; return; }
     if (s.kind === "flash") {
       b.disabled = !gs.hasFlash; b.classList.toggle("on", gs.flashOn);
-      lab.innerHTML = `<kbd>F</kbd> 電池${gs.inv.battery}`;
+      lab.innerHTML = `<kbd>${FINE ? "ホイール" : "タップ"}</kbd> 電池${gs.inv.battery}`;
       b.querySelector(".bat i").style.width = clamp(gs.bat / 90 * 100, 0, 100) + "%";
       return;
     }
     b.disabled = gs.inv[s.kind] === 0;
-    lab.innerHTML = `<kbd>${s.key}</kbd> ×${gs.inv[s.kind]}`;
+    lab.innerHTML = `×${gs.inv[s.kind]}`;
   });
 }
 const GLITCH_CH = "ねむいおきろここどこだれまだ";
@@ -1964,7 +1965,7 @@ function useBest() {
 }
 cvs.addEventListener("mousedown", (e) => {
   if (!st.running || gs.over) return;
-  if (e.button === 0) useBest();
+  if (e.button === 0) { if (!$("note").hidden) $("note").hidden = true; else useBest(); }
   if (e.button === 2) pinch();
 });
 cvs.addEventListener("contextmenu", (e) => e.preventDefault());
