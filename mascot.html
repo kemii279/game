@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>キャレ マスコット設計</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #0c0d13;
+    --panel: #151722;
+    --line: #262a3b;
+    --text: #dcdfeb;
+    --muted: #868ba3;
+    --accent: #29adff;
+    --pixel: "DotGothic16", "Osaka-mono", "MS Gothic", ui-monospace, monospace;
+    --ed-bg: #1c1d29;
+    --ed-bar: #14151e;
+  }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--pixel);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  main { box-sizing: border-box; max-width: 880px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 400; letter-spacing: 0.08em; }
+  h1 small { color: var(--muted); font-size: 14px; margin-left: 10px; letter-spacing: 0.04em; }
+  h2 { font-size: 18px; font-weight: 400; letter-spacing: 0.06em; margin: 44px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  h2 span { color: var(--accent); margin-right: 8px; }
+  p { margin: 8px 0; }
+  .lead { color: var(--muted); margin-top: 6px; }
+  .lead b { color: var(--accent); font-weight: 400; }
+  code { font-family: var(--pixel); color: var(--accent); }
+
+  /* ---------- editor ---------- */
+  .editor { --fs: 16px; --lh: 24px; margin-top: 20px; background: var(--ed-bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 10px; background: var(--ed-bar); padding: 8px 12px 0; font-size: 13px; color: var(--muted); }
+  .dots { display: flex; gap: 6px; padding-bottom: 8px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: #2c2f42; }
+  .tab { background: var(--ed-bg); color: var(--text); padding: 5px 14px 6px; border-radius: 6px 6px 0 0; }
+  .body { display: flex; }
+  .gutter { flex: none; width: 28px; padding: 12px 10px 12px 0; text-align: right; color: #454860; font-size: var(--fs); line-height: var(--lh); user-select: none; }
+  .code { position: relative; flex: 1; min-width: 0; height: calc(var(--lh) * 8); margin: 12px 0 12px 10px; font-size: var(--fs); line-height: var(--lh); cursor: pointer; overflow: hidden; transition: opacity .4s; }
+  .ch { position: absolute; top: 0; line-height: var(--lh); height: var(--lh); text-align: center; white-space: pre; user-select: none; transition: left .2s steps(3), transform .1s steps(2), opacity .2s; }
+  .caret { position: absolute; width: 2px; height: calc(var(--lh) - 4px); background: var(--accent); animation: blink 1.06s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #ov { position: absolute; left: 0; top: 0; image-rendering: pixelated; pointer-events: none; }
+  @media (min-width: 640px) { .editor { --fs: 24px; --lh: 36px; } }
+  .status { display: flex; justify-content: space-between; gap: 12px; background: #1d5f8a; color: #e6f4ff; font-size: 12px; padding: 2px 12px; }
+  .status span:last-child { opacity: .8; }
+
+  .caption { min-height: 1.7em; margin: 10px 2px 0; color: var(--muted); }
+  .caption b { color: var(--text); font-weight: 400; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .ctrl button {
+    font: inherit; font-size: 14px; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer;
+  }
+  .ctrl button:hover { border-color: var(--accent); }
+  .ctrl button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* ---------- sheet ---------- */
+  .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; text-align: center; }
+  .cell canvas { width: 96px; height: 96px; image-rendering: pixelated; display: block; margin: 0 auto 6px; }
+  .cell b { display: block; font-weight: 400; }
+  .cell small { color: var(--muted); font-size: 12px; }
+
+  .pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+  .sw { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .sw i { width: 22px; height: 22px; border-radius: 4px; flex: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+  .sw code { color: var(--muted); margin-left: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 400; }
+  td:first-child { white-space: nowrap; }
+  .tw { overflow-x: auto; }
+  ul { padding-left: 1.2em; margin: 8px 0; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>キャレ <small>CARET — テキストエディタに住むドット絵マスコット</small></h1>
+  <p class="lead">エディタの<b>キャレ（文字カーソル）</b>が、入力が止まったすきに家出して生まれた小さな生き物。頭のアンテナが本物のキャレで、同じリズムで点滅する。</p>
+
+  <section class="editor" aria-label="デモ用エディタ">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="tab">pico.js</div></div>
+    <div class="body">
+      <div class="gutter" id="gutter"></div>
+      <div class="code" id="code"><canvas id="ov"></canvas></div>
+    </div>
+    <div class="status"><span id="st">NORMAL</span><span>UTF-8 · JavaScript</span></div>
+  </section>
+  <p class="caption" id="cap">&nbsp;</p>
+  <div class="ctrl" id="ctrl">
+    <button data-a="episode" aria-pressed="true">▶ エピソード</button>
+    <button data-a="idle">待機</button>
+    <button data-a="walk">歩く</button>
+    <button data-a="jump">ジャンプ</button>
+    <button data-a="surprise">びっくり</button>
+    <button data-a="munch">もぐもぐ</button>
+    <button data-a="happy">よろこぶ</button>
+    <button data-a="sleep">ねむる</button>
+  </div>
+  <p class="hint">エディタのどこかをクリックすると、キャレがその行へジャンプしてくる。</p>
+
+  <h2><span>01</span>コンセプト</h2>
+  <ul>
+    <li><b>正体はキャレ。</b>アンテナ＝1px幅の縦棒で、エディタのキャレと同じ色・同じ 0.53 秒周期で点滅する。入力中はキャレの中に隠れていて、ふつうのカーソルにしか見えない。</li>
+    <li><b>エディタを遊び場にする。</b>行はそれぞれ「床」、空行は「谷」、インデントは「段差」。文字の前を歩くと文字がぴょこっと跳ねる。</li>
+    <li><b>コードは勝手に変えない。</b>タイプミスを「もぐもぐ」するのは演出で、実際のエディタに載せるときは修正候補を示すだけにする。</li>
+    <li><b>BIT RUNNER のビットと同じ系譜。</b>四角い体に1本のアンテナ。ビットはバイザー、キャレはアンテナがステージ（テーマ）のアクセント色になる。</li>
+  </ul>
+
+  <h2><span>02</span>ドット絵の仕様</h2>
+  <div class="tw"><table>
+    <tr><th>項目</th><th>決定</th></tr>
+    <tr><td>サイズ</td><td>12×12px（体 10×8px ＋ アンテナ 3px ＋ 足 1px）</td></tr>
+    <tr><td>表示倍率</td><td>行の高さ ＝ 12 × 倍率 にする（2倍なら 24px、3倍なら 36px）。整数倍のみ、<code>image-rendering: pixelated</code></td></tr>
+    <tr><td>基準点</td><td>足元の中央を行の下端（ベースライン）に合わせる。アンテナの x がキャレの x と一致するように置く</td></tr>
+    <tr><td>向き</td><td>左右反転の1セットだけ。目と頬を進行方向に1px寄せて向きを表す</td></tr>
+    <tr><td>色</td><td>8色（下のパレット）。アンテナ色だけエディタテーマのキャレ色に差し替える</td></tr>
+    <tr><td>アニメ</td><td>12fps 基準。歩き2コマ、もぐもぐ2コマ、まばたきは 2.6 秒ごとに 1 コマ</td></tr>
+  </table></div>
+
+  <h2><span>03</span>スプライトシート</h2>
+  <div class="sheet" id="sheet"></div>
+
+  <h2><span>04</span>パレット</h2>
+  <div class="pal" id="pal"></div>
+
+  <h2><span>05</span>ふるまい（エディタのイベント → 行動）</h2>
+  <div class="tw"><table>
+    <tr><th>きっかけ</th><th>行動</th><th>スプライト</th></tr>
+    <tr><td>入力中</td><td>キャレの中に隠れている。アンテナだけ＝ふつうのキャレ</td><td>—</td></tr>
+    <tr><td>入力が 5 秒止まる</td><td>キャレからにゅっと出てきて、その場でまばたき</td><td>出現 → 待機</td></tr>
+    <tr><td>入力が 20 秒止まる</td><td>行末の空白を散歩。段差（インデント）や空行はジャンプで渡る</td><td>歩く / ジャンプ</td></tr>
+    <tr><td>Lint の警告が出る</td><td>「！」を出して、その文字の横まで跳んでいき、もぐもぐするふりをする（修正候補を表示）</td><td>びっくり → もぐもぐ</td></tr>
+    <tr><td>警告が直る・保存</td><td>その場で2回跳ねてキラキラ</td><td>よろこぶ</td></tr>
+    <tr><td>2 分放置</td><td>いちばん近い <code>}</code> のとなりで寝る。アンテナが垂れて暗くなる</td><td>ねむる</td></tr>
+    <tr><td>入力を再開</td><td>びっくりして、キャレの位置までジャンプして中に戻る</td><td>びっくり → 出現（逆再生）</td></tr>
+    <tr><td>クリック</td><td>クリックした行へジャンプしてくる</td><td>ジャンプ</td></tr>
+  </table></div>
+
+  <h2><span>06</span>移動のルール</h2>
+  <ul>
+    <li>立てるのは行の下端だけ。行と行のあいだはジャンプでしか移動しない（高さ＝上る段差の 0.6 倍＋7 ドット）。</li>
+    <li>文字の前を歩くと、足元の文字が少し跳ねる。文字の上にかぶっても、読みにくくなるのは一瞬だけにする。</li>
+    <li>選択範囲、補完ポップアップ、エラー表示の上では遊ばない。開発者の視線の先からはすぐにどく。</li>
+    <li>画面外や折りたたまれた行には行かない。スクロールしたら、見えている行のいちばん近い床に着地し直す。</li>
+  </ul>
+</main>
+
+<script>
+(() => {
+  // ---------- palette & sprites ----------
+  const PAL = {
+    k: '#0d0e16', // 輪郭
+    b: '#f4f4f4', // 体
+    s: '#c2c3c7', // 影
+    e: '#0d0e16', // 目・口
+    p: '#ff77a8', // ほっぺ
+    m: '#7e2553', // 口の中
+    c: '#29adff', // アンテナ（キャレ色）
+    d: '#1d5f8a', // ねむいアンテナ
+  };
+  const PAL_INFO = [
+    ['k', '輪郭'], ['b', '体'], ['s', '影（左下）'], ['p', 'ほっぺ'],
+    ['m', '口の中'], ['c', 'アンテナ＝キャレ色'], ['d', 'ねむいアンテナ'], ['e', '目（輪郭と同色）'],
+  ];
+
+  const IDLE = [
+    '......c.....',
+    '......c.....',
+    '......c.....',
+    '..kkkkkkkk..',
+    '.kbbbbbbbbk.',
+    '.kbbbbbbbbk.',
+    '.kbbbebbebk.',
+    '.kbbbebbebk.',
+    '.kbbpbbbbpk.',
+    '.kssbbbbbbk.',
+    '..kkkkkkkk..',
+    '..kk....kk..',
+  ];
+  const put = (base, rows) => base.map((r, i) => (i in rows ? rows[i] : r));
+  const SPR = {
+    idle: IDLE,
+    blink: put(IDLE, { 6: '.kbbbbbbbbk.', 7: '.kbbeebeebk.' }),
+    walkA: IDLE,
+    walkB: IDLE.slice(1, 11).concat(['...kk..kk...', '...kk..kk...']),
+    jump: put(IDLE, { 11: '.kk......kk.' }),
+    surprise: put(IDLE, { 6: '.kbbbeebeek.', 7: '.kbbbeebeek.', 11: '.kk......kk.' }),
+    munchA: put(IDLE, { 8: '.kbbpbmmmpk.', 9: '.kssbbmmmbk.' }),
+    munchB: put(IDLE, { 6: '.kbbbbbbbbk.', 7: '.kbbeebeebk.', 9: '.kssbbeeebk.' }),
+    happy: put(IDLE, { 7: '.kbbebeebek.', 9: '.kssbbeebbk.', 11: '.kk......kk.' }),
+    sleep: [
+      '............',
+      '........d...',
+      '.......d....',
+      '......d.....',
+      '..kkkkkkkk..',
+      '.kbbbbbbbbk.',
+      '.kbbbbbbbbk.',
+      '.kbbeebeebk.',
+      '.kbbpbbbbpk.',
+      '.kssbbbbbbk.',
+      '.kssbbbbbbk.',
+      '..kkkkkkkk..',
+    ],
+    pop0: ['............', '............'].concat(Array(10).fill('......c.....')),
+    pop1: [
+      '............',
+      '............',
+      '............',
+      '......c.....',
+      '......c.....',
+      '......c.....',
+      '..kkkkkkkk..',
+      '.kbbbbbbbbk.',
+      '.kbbbebbebk.',
+      '.kbbpbbbbpk.',
+      '.kssbbbbbbk.',
+      '..kkkkkkkk..',
+    ],
+  };
+  const ANIM = {
+    idle: (t) => (t % 2600 > 2480 ? 'blink' : 'idle'),
+    walk: (t) => (Math.floor(t / 140) % 2 ? 'walkB' : 'walkA'),
+    jump: () => 'jump',
+    surprise: () => 'surprise',
+    munch: (t) => (Math.floor(t / 150) % 2 ? 'munchB' : 'munchA'),
+    happy: () => 'happy',
+    sleep: () => 'sleep',
+    pop: (t) => (t < 140 ? 'pop0' : t < 280 ? 'pop1' : 'idle'),
+    unpop: (t) => (t < 140 ? 'pop1' : 'pop0'),
+  };
+  const SHEET = [
+    ['pop0', '出現 1', 'キャレのまま'], ['pop1', '出現 2', 'にゅっ'], ['idle', '待機', '基本形'], ['blink', 'まばたき', '2.6秒ごと'],
+    ['walkA', '歩く 1', '140ms'], ['walkB', '歩く 2', '体が1px上がる'], ['jump', 'ジャンプ', '足を開く'], ['surprise', 'びっくり', '目が2×2'],
+    ['munchA', 'もぐもぐ 1', '口をあける'], ['munchB', 'もぐもぐ 2', '目を閉じてかむ'], ['happy', 'よろこぶ', '目が ^ ^'], ['sleep', 'ねむる', 'アンテナが垂れる'],
+  ];
+  const Z = ['kkk', '..k', '.k.', 'k..', 'kkk'];
+  const BANG = ['k', 'k', 'k', '.', 'k'];
+  const STAR = ['.k.', 'kkk', '.k.'];
+
+  // ---------- editor model ----------
+  const SRC = [
+    '// caret lives here',
+    'function greet(name) {',
+    '  const msg = "hi, " + name;',
+    '  console.logg(msg);',
+    '}',
+    '',
+    'greet("world");',
+  ];
+  const TYPO = { row: 3, col: 13, from: 10 }; // 余分な g
+  let S = 2, LH = 24; const ROWS = 8; // S = 1ドットの大きさ(px)。LH = 12 × S
+  const code = document.getElementById('code');
+  const ov = document.getElementById('ov');
+  const g = ov.getContext('2d');
+  const cap = document.getElementById('cap');
+  const st = document.getElementById('st');
+  document.getElementById('gutter').innerHTML = SRC.map((_, i) => i + 1).concat(['']).join('<br>');
+  let cw = 9, chars = [], caret, squiggle = false;
+
+  function colorize(line) {
+    const col = Array(line.length).fill('#dfe2ee');
+    const paint = (re, c) => { for (const mt of line.matchAll(re)) for (let i = 0; i < mt[0].length; i++) col[mt.index + i] = c; };
+    paint(/[{}()\[\];.,+=]/g, '#8e93b3');
+    paint(/\b[A-Za-z_]\w*(?=\()/g, '#6fc3ff');
+    paint(/\b(function|const|return)\b/g, '#ff7ab6');
+    paint(/"[^"]*"/g, '#f5d76e');
+    paint(/\/\/.*/g, '#5d6385');
+    return col;
+  }
+  function build() {
+    code.querySelectorAll('.ch,.caret').forEach((n) => n.remove());
+    chars = [];
+    SRC.forEach((line, row) => {
+      const col = colorize(line);
+      [...line].forEach((ch, c) => {
+        if (ch === ' ') return;
+        const el = document.createElement('span');
+        el.className = 'ch';
+        el.textContent = ch;
+        el.style.color = col[c];
+        code.appendChild(el);
+        chars.push({ el, row, col: c, color: col[c] });
+      });
+    });
+    caret = document.createElement('div');
+    caret.className = 'caret';
+    code.appendChild(caret);
+    squiggle = false;
+    layout();
+  }
+  function layout() {
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+    probe.textContent = '0'.repeat(20);
+    code.appendChild(probe);
+    cw = probe.getBoundingClientRect().width / 20 || 9;
+    LH = parseFloat(getComputedStyle(code).lineHeight) || 24; S = LH / 12;
+    probe.remove();
+    for (const c of chars) { c.el.style.left = c.col * cw + 'px'; c.el.style.top = c.row * LH + 'px'; c.el.style.width = cw + 'px'; }
+    placeCaret(6, 15);
+    const w = code.clientWidth;
+    ov.width = Math.ceil(w / S); ov.height = ROWS * LH / S;
+    ov.style.width = ov.width * S + 'px'; ov.style.height = ov.height * S + 'px';
+  }
+  function placeCaret(row, col) { caret.style.left = col * cw + 'px'; caret.style.top = row * LH + 2 + 'px'; caret.style.height = LH - 4 + 'px'; }
+  const colX = (col) => col * cw - 6 * S; // アンテナ（左から6ドット目）をキャレに合わせる
+
+  // ---------- mascot state ----------
+  const m = { x: 0, row: 6, y: 6 * LH, face: 1, anim: 'idle', at: 0, show: false, bang: false };
+  const parts = [];
+  const setAnim = (a) => { m.anim = a; m.at = 0; };
+  const say = (html) => { cap.innerHTML = html || '&nbsp;'; };
+
+  function jostle(on) {
+    for (const c of chars) {
+      const cx = c.col * cw + cw / 2;
+      const hit = on && c.row === m.row && cx > m.x + 2 * S && cx < m.x + 10 * S;
+      c.el.style.transform = hit ? 'translateY(-3px)' : '';
+    }
+  }
+  function puff(x, y, color, n, spread = 1) {
+    for (let i = 0; i < n; i++) parts.push({ kind: 'px', x, y, vx: (Math.random() - 0.5) * 30 * S * spread, vy: (-15 - Math.random() * 25) * S, life: 500, t: 0, color });
+  }
+
+  // ---------- step runner ----------
+  let queue = [], cur = null, loopGen = null;
+  function play(gen) { queue = []; cur = null; loopGen = gen; m.bang = false; jostle(false); }
+  const act = (fn) => ({ dur: 0, start: fn });
+  const wait = (dur, anim, cb) => ({ dur, start() { if (anim) setAnim(anim); }, update: cb });
+  function hop(row, x, dur = 420, extra = 7 * S, anim = 'jump') {
+    let x0, y0, y1;
+    return {
+      dur,
+      start() { x0 = m.x; y0 = m.y; y1 = row * LH; if (Math.abs(x - x0) > 1) m.face = Math.sign(x - x0); setAnim(anim); jostle(false); },
+      update(p) {
+        const h = extra + Math.max(0, y0 - y1) * 0.6;
+        m.x = x0 + (x - x0) * p;
+        m.y = y0 + (y1 - y0) * p - 4 * h * p * (1 - p);
+      },
+      end() { m.row = row; m.y = y1; setAnim('idle'); puff(m.x + 6 * S, m.y + 11.5 * S, '#8e93b3', 3, 0.6); },
+    };
+  }
+  function walk(x, speed = 21 * S) {
+    let x0;
+    return {
+      dur: 0,
+      start() { x0 = m.x; this.dur = Math.max(1, Math.abs(x - x0) / speed * 1000); m.face = Math.sign(x - x0) || m.face; setAnim('walk'); },
+      update(p) { m.x = x0 + (x - x0) * p; jostle(true); },
+      end() { jostle(false); setAnim('idle'); },
+    };
+  }
+  function tick(dt) {
+    if (!cur && !queue.length && loopGen) queue = loopGen();
+    if (!cur && queue.length) { cur = queue.shift(); cur.t = 0; cur.start && cur.start(); }
+    if (cur) {
+      cur.t += dt;
+      const p = cur.dur ? Math.min(1, cur.t / cur.dur) : 1;
+      cur.update && cur.update(p, dt, cur.t);
+      if (p >= 1) { const c = cur; cur = null; c.end && c.end(); }
+    }
+    m.at += dt;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i];
+      q.t += dt; q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000;
+      if (q.kind === 'px') q.vy += 110 * S * dt / 1000;
+      if (q.t > q.life) parts.splice(i, 1);
+    }
+  }
+
+  // ---------- episode ----------
+  const typo = () => chars.find((c) => c.row === TYPO.row && c.col === TYPO.col);
+  function emerge(row, col) {
+    return [
+      act(() => { m.show = true; m.row = row; m.y = row * LH; m.x = colX(col); m.face = -1; caret.style.display = 'none'; setAnim('pop'); }),
+      wait(700),
+    ];
+  }
+  function episode() {
+    return [
+      act(() => { build(); m.show = false; st.textContent = 'INSERT'; say('<b>入力中</b> — キャレはカーソルの中に隠れている'); }),
+      wait(1600),
+      act(() => { st.textContent = 'NORMAL'; say('<b>入力が止まった</b> — キャレからにゅっと出てくる'); }),
+      ...emerge(6, 15),
+      wait(1800, 'idle'),
+      act(() => { squiggle = true; m.bang = true; setAnim('surprise'); say('<b>Lint の警告</b> — 「logg」に波線。「！」'); }),
+      wait(900),
+      act(() => { m.bang = false; say('<b>跳んでいく</b> — 空行と段差をジャンプで渡る'); }),
+      hop(5, colX(17)),
+      hop(4, colX(19)),
+      hop(3, 20 * cw + 2 * S, 460),
+      wait(250, 'idle'),
+      walk(14 * cw - 2 * S),
+      act(() => { m.face = -1; say('<b>もぐもぐ</b> — 余分な <code>g</code> をたべる（実際は修正候補を出すだけ）'); }),
+      wait(900, 'munch', (p) => {
+        const c = typo();
+        if (!c) return;
+        c.el.style.transform = `translateX(${Math.round(p * 5)}px) scale(${Math.max(0, 1 - p).toFixed(2)})`;
+        if (Math.random() < 0.18) puff(m.x + 1.5 * S, m.y + 8.5 * S, c.color, 1);
+      }),
+      act(() => {
+        const c = typo();
+        if (c) { c.el.remove(); chars.splice(chars.indexOf(c), 1); }
+        for (const o of chars) if (o.row === TYPO.row && o.col > TYPO.col) { o.col--; o.el.style.left = o.col * cw + 'px'; }
+        squiggle = false;
+      }),
+      walk(13 * cw - 2 * S, 15 * S),
+      act(() => say('<b>直った！</b> — よろこぶ')),
+      hop(3, 13 * cw - 2 * S, 380, 6 * S, 'happy'),
+      hop(3, 13 * cw - 2 * S, 380, 6 * S, 'happy'),
+      act(() => { for (let i = 0; i < 4; i++) parts.push({ kind: 'star', x: m.x + 6 * S + (i % 2 ? 1 : -1) * (5 + i * 1.5) * S, y: m.y + (1 - i * 1.5) * S, vx: 0, vy: -6 * S, life: 700, t: 0 }); }),
+      wait(700, 'idle'),
+      act(() => say('<b>ひと休み</b> — いちばん近い <code>}</code> のとなりへ')),
+      walk(19 * cw + 2 * S),
+      hop(4, cw + 3 * S, 520),
+      act(() => { m.face = -1; say('<b>2 分放置</b> — アンテナが垂れて、すやすや'); }),
+      wait(3600, 'sleep', (p, dt, t) => {
+        if (Math.floor(t / 900) !== Math.floor((t - dt) / 900)) parts.push({ kind: 'z', x: m.x + 7 * S, y: m.y, vx: 4 * S, vy: -7 * S, life: 1500, t: 0 });
+      }),
+      act(() => { st.textContent = 'INSERT'; m.bang = true; setAnim('surprise'); say('<b>入力を再開</b> — びっくりしてキャレに戻る'); }),
+      wait(500),
+      act(() => { m.bang = false; }),
+      hop(6, colX(15), 560),
+      act(() => setAnim('unpop')),
+      wait(280),
+      act(() => { m.show = false; caret.style.display = ''; placeCaret(6, 15); }),
+      wait(1000),
+      { dur: 400, update(p) { code.style.opacity = 1 - p; } },
+      { dur: 400, start() { build(); }, update(p) { code.style.opacity = p; } },
+    ];
+  }
+
+  // ---------- controls ----------
+  function ensureOut() {
+    if (m.show) return;
+    build();
+    m.show = true; m.row = 6; m.y = 6 * LH; m.x = colX(15); m.face = -1;
+    caret.style.display = 'none';
+  }
+  const ACTIONS = {
+    idle: () => [wait(3000, 'idle')],
+    walk: () => { const x0 = m.x; return [walk(x0 + cw * 4), walk(x0)]; },
+    jump: () => [hop(m.row, m.x, 440, 8 * S), wait(350, 'idle')],
+    surprise: () => [act(() => { m.bang = true; }), wait(1200, 'surprise')],
+    munch: () => [wait(1200, 'munch', () => { if (Math.random() < 0.1) puff(m.x + (m.face < 0 ? 1.5 : 10.5) * S, m.y + 8.5 * S, '#6fc3ff', 1); })],
+    happy: () => [hop(m.row, m.x, 380, 6 * S, 'happy'), wait(200, 'happy')],
+    sleep: () => [wait(1800, 'sleep', (p, dt, t) => { if (Math.floor(t / 900) !== Math.floor((t - dt) / 900)) parts.push({ kind: 'z', x: m.x + 7 * S, y: m.y, vx: 4 * S, vy: -7 * S, life: 1500, t: 0 }); })],
+  };
+  const LABEL = { idle: '待機', walk: '歩く', jump: 'ジャンプ', surprise: 'びっくり', munch: 'もぐもぐ', happy: 'よろこぶ', sleep: 'ねむる' };
+  const ctrl = document.getElementById('ctrl');
+  const press = (a) => ctrl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.a === a)));
+  ctrl.addEventListener('click', (e) => {
+    const a = e.target.closest('button')?.dataset.a;
+    if (!a) return;
+    press(a);
+    code.style.opacity = 1;
+    if (a === 'episode') { play(episode); return; }
+    ensureOut();
+    st.textContent = 'NORMAL';
+    say(`<b>${LABEL[a]}</b> — ループ再生中`);
+    play(ACTIONS[a]);
+  });
+  code.addEventListener('click', (e) => {
+    const r = code.getBoundingClientRect();
+    const row = Math.max(0, Math.min(ROWS - 1, Math.floor((e.clientY - r.top) / LH)));
+    const x = Math.max(0, Math.min(code.clientWidth - 12 * S, e.clientX - r.left - 6 * S));
+    press(null);
+    code.style.opacity = 1;
+    ensureOut();
+    say(`<b>クリック</b> — ${row + 1} 行目へジャンプ`);
+    play(() => [wait(3000, 'idle')]);
+    queue = [hop(row, x, 480)];
+  });
+
+  // ---------- drawing ----------
+  function blit(ctx, rows, x, y, flip, colors, skipC) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      for (let c = 0; c < row.length; c++) {
+        const ch = flip ? row[row.length - 1 - c] : row[c];
+        if (ch === '.' || (skipC && ch === 'c')) continue;
+        ctx.fillStyle = colors[ch] || colors.k;
+        ctx.fillRect(x + c, y + r, 1, 1);
+      }
+    }
+  }
+  function draw() {
+    g.clearRect(0, 0, ov.width, ov.height);
+    if (squiggle) {
+      g.fillStyle = '#ff5c5c';
+      const x0 = Math.round(TYPO.from * cw / S), x1 = Math.round((TYPO.col + 1) * cw / S), y = (TYPO.row + 1) * LH / S - 1;
+      for (let x = x0; x < x1; x++) g.fillRect(x, y - ((x >> 1) % 2), 1, 1);
+    }
+    if (m.show) {
+      const ux = Math.round(m.x / S), uy = Math.round(m.y / S);
+      const frame = SPR[ANIM[m.anim](m.at)];
+      const blinkOff = (m.anim === 'idle' || m.anim === 'sleep') && Math.floor(m.at / 530) % 2 === 1;
+      blit(g, frame, ux, uy, m.face < 0, PAL, blinkOff);
+      if (m.bang) blit(g, BANG, ux + (m.face < 0 ? 2 : 9), uy - 5 + (Math.floor(m.at / 120) % 2), false, { k: '#ffec27' });
+    }
+    for (const q of parts) {
+      const x = Math.round(q.x / S), y = Math.round(q.y / S);
+      if (q.kind === 'px') { g.fillStyle = q.color; g.fillRect(x, y, 1, 1); }
+      if (q.kind === 'z') { g.globalAlpha = 1 - q.t / q.life; blit(g, Z, x, y, false, { k: '#9aa3d6' }); g.globalAlpha = 1; }
+      if (q.kind === 'star' && Math.floor(q.t / 100) % 2 === 0) blit(g, STAR, x, y, false, { k: '#ffec27' });
+    }
+  }
+
+  // ---------- sheet & palette ----------
+  const sheet = document.getElementById('sheet');
+  for (const [key, name, note] of SHEET) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const cv = document.createElement('canvas');
+    cv.width = 12; cv.height = 12;
+    const cx = cv.getContext('2d');
+    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) { cx.fillStyle = (x + y) % 2 ? '#1c1d29' : '#20222f'; cx.fillRect(x, y, 1, 1); }
+    blit(cx, SPR[key], 0, 0, false, PAL);
+    cell.append(cv);
+    cell.insertAdjacentHTML('beforeend', `<b>${name}</b><small>${note}</small>`);
+    sheet.append(cell);
+  }
+  document.getElementById('pal').innerHTML = PAL_INFO.map(([k, n]) => `<div class="sw"><i style="background:${PAL[k]}"></i>${n}<code>${PAL[k]}</code></div>`).join('');
+
+  // ---------- boot ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(50, now - last); last = now;
+    tick(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  const start = () => { build(); play(episode); requestAnimationFrame(frame); };
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(start);
+  addEventListener('resize', () => {
+    const old = S;
+    layout();
+    if (S !== old) { press('episode'); build(); play(episode); }
+  });
+})();
+</script>
+</body>
+</html>

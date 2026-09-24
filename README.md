@@ -5,3 +5,4 @@
 
 - 操作：クリックで小ジャンプ、長押しで大ジャンプ（上ルートへ）。一時停止とサウンドは画面右上のボタン
 - 設計：[DESIGN.md](DESIGN.md)
+- マスコット「キャレ」（エディタで遊ぶドット絵キャラ）：[MASCOT.md](MASCOT.md) ／ デモ [mascot.html](mascot.html)
