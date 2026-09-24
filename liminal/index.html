@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ハザマ — LIMINAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #050503;
+    --text: #e8e0b8;
+    --muted: #8f8766;
+    --rec: #ff3b2f;
+    --pixel: "DotGothic16", "Osaka-mono", "MS Gothic", ui-monospace, monospace;
+    --s: 3;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--pixel);
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .screen {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 960px; height: 540px;
+  }
+  canvas {
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: none;
+  }
+  /* ブラウン管のような走査線。1ドットに1本 */
+  .scan {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom,
+      rgba(0,0,0,0) 0, rgba(0,0,0,0) calc(var(--s) * 1px - 1px),
+      rgba(0,0,0,.13) calc(var(--s) * 1px - 1px), rgba(0,0,0,.13) calc(var(--s) * 1px));
+    mix-blend-mode: multiply;
+  }
+  .hud {
+    position: absolute; inset: 0; pointer-events: none;
+    font-size: calc(var(--s) * 7px);
+    line-height: 1.25;
+    color: var(--text);
+    text-shadow: calc(var(--s) * .5px) 0 rgba(255, 40, 60, .35), calc(var(--s) * -.5px) 0 rgba(40, 200, 255, .3);
+    letter-spacing: .08em;
+    font-variant-numeric: tabular-nums;
+  }
+  .hud > div { position: absolute; }
+  .tl { left: calc(var(--s) * 8px); top: calc(var(--s) * 6px); }
+  .tr { right: calc(var(--s) * 8px); top: calc(var(--s) * 6px); text-align: right; }
+  .bl { left: calc(var(--s) * 8px); bottom: calc(var(--s) * 6px); }
+  .br { right: calc(var(--s) * 8px); bottom: calc(var(--s) * 6px); text-align: right; }
+  .rec i { font-style: normal; color: var(--rec); animation: blink 1.2s steps(1) infinite; }
+  .dim { opacity: .7; }
+  @keyframes blink { 50% { visibility: hidden; } }
+  .msg {
+    left: 0; right: 0; bottom: calc(var(--s) * 26px);
+    text-align: center; font-size: calc(var(--s) * 8px);
+    opacity: 0; transition: opacity 1.6s steps(8);
+  }
+  .msg.on { opacity: .92; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    display: grid; place-content: center; justify-items: center;
+    gap: calc(var(--s) * 5px);
+    padding: 16px; box-sizing: border-box;
+    text-align: center;
+    background: rgba(5, 5, 3, .78);
+    cursor: pointer;
+  }
+  .overlay h1 {
+    margin: 0; font-weight: 400;
+    font-size: calc(var(--s) * 22px); letter-spacing: .3em; line-height: 1;
+    text-shadow: calc(var(--s) * 1px) 0 rgba(255,40,60,.45), calc(var(--s) * -1px) 0 rgba(40,200,255,.4);
+  }
+  .overlay .sub { margin: 0; color: var(--muted); font-size: calc(var(--s) * 7px); letter-spacing: .4em; }
+  .overlay .go { margin: calc(var(--s) * 6px) 0 0; font-size: calc(var(--s) * 9px); animation: blink 1.4s steps(1) infinite; }
+  .overlay .keys { margin: 0; color: var(--muted); font-size: calc(var(--s) * 6px); line-height: 1.7; }
+  @media (max-width: 520px) {
+    .overlay .keys { font-size: 12px; }
+    .overlay .sub { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <canvas id="view" width="320" height="180" aria-label="リミナルスペース"></canvas>
+  <div class="scan"></div>
+  <div class="hud" id="hud" hidden>
+    <div class="tl rec"><i>●</i> REC</div>
+    <div class="tr"><span id="clock">AM 3:14:00</span><br><span class="dim">JUN.21 1998</span></div>
+    <div class="bl"><span id="zone">B0 黄色い部屋</span></div>
+    <div class="br dim"><span id="dist">0</span>m</div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="overlay" id="overlay">
+    <h1>ハザマ</h1>
+    <p class="sub">LIMINAL SPACE</p>
+    <p class="go" id="go">クリックして入る</p>
+    <p class="keys" id="keys">WASD・矢印キー：歩く　マウス：見回す　Shift：走る　Esc：離れる<br>スマホ：押しているあいだ前へ歩く・左右になぞって向きを変える<br>ヘッドホン推奨</p>
+  </div>
+</div>
+<script>
+"use strict";
+// ============================================================
+//  ハザマ — ドット絵のリミナルスペース
+//  320x180 のレイキャスターで、無限に続く部屋を描く
+// ============================================================
+
+const W = 320, H = 180;
+const PL = 0.72;                 // カメラ平面（視野角 約72度）
+const PROJ = (W / 2) / PL;       // 1ユニット先の1ユニットが何pxになるか
+const T = 32;                    // テクスチャの一辺
+const P = 6;                     // 部屋の間隔（セル）
+const R = 26;                    // 毎フレーム扱う範囲（半径）
+const G = R * 2 + 1, G1 = G + 1;
+const MAXD = 20;                 // この距離で完全に闇になる
+const SEED = (() => { const m = /seed=(\d+)/.exec(location.search); return m ? +m[1] : 1998; })();
+
+const cvs = document.getElementById("view");
+const ctx = cvs.getContext("2d");
+const img = ctx.createImageData(W, H);
+const buf = new Uint32Array(img.data.buffer);
+
+// ---------- 乱数 ----------
+function hash2(x, y, s) {
+  let h = Math.imul(x | 0, 0x27d4eb2d) ^ Math.imul(y | 0, 0x165667b1) ^ Math.imul((s + SEED * 131) | 0, 0x9e3779b9);
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+const mod = (a, n) => ((a % n) + n) % n;
+
+// ---------- パレット（素材ごとの16段ランプ） ----------
+function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+function ramp(stops) {
+  const a = stops.map(hex), out = new Uint32Array(16);
+  for (let i = 0; i < 16; i++) {
+    const t = i / 15 * (a.length - 1), k = Math.min(a.length - 2, Math.floor(t)), f = t - k;
+    const c = [0, 1, 2].map(j => Math.round(a[k][j] + (a[k + 1][j] - a[k][j]) * f));
+    out[i] = (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0];
+  }
+  return out;
+}
+const RP = {
+  WALL: 0, CARPET: 1, CEIL: 2, LIGHT: 3, BASE: 4, CONC: 5, CONCF: 6, CAUTION: 7,
+  POOLW: 8, POOLF: 9, EXIT: 10, DOOR: 11, FIG: 12, PLASTIC: 13, ORANGE: 14,
+};
+const RAMPS = [
+  ramp(["#120f05", "#4a4016", "#8a7a2e", "#c9b458", "#efe29a"]),  // 壁紙（黄）
+  ramp(["#0d0a03", "#3b3113", "#6b5a26", "#a58e45", "#cdb872"]),  // 湿ったカーペット
+  ramp(["#100f0a", "#4d4a38", "#8f8a6a", "#d2cda8", "#fbf7dc"]),  // 天井材
+  ramp(["#1a1912", "#77745f", "#c7c3a6", "#f1eed7", "#ffffff"]),  // 蛍光灯（発光）
+  ramp(["#090703", "#2a220d", "#4a3d18", "#7a6628", "#a08840"]),  // 幅木
+  ramp(["#080909", "#2b302f", "#4b5250", "#8d9591", "#c3c9c3"]),  // コンクリート壁
+  ramp(["#070808", "#232725", "#3a3f3d", "#6f7672", "#9aa29c"]),  // コンクリート床
+  ramp(["#110d00", "#4d3c00", "#8a6d00", "#e0b400", "#ffe45c"]),  // 注意の黄
+  ramp(["#060c0d", "#2d4244", "#5e7c80", "#b9d3d3", "#f2ffff"]),  // プールの白タイル
+  ramp(["#020b0e", "#0c3a42", "#1f6e7a", "#5cc1c9", "#b8f4f2"]),  // プールの水色タイル
+  ramp(["#000a05", "#063a1c", "#0d6b33", "#2ee07a", "#d8ffe6"]),  // 非常口（発光）
+  ramp(["#0b0703", "#2f1f0f", "#5a3c1e", "#8f6534", "#b88a52"]),  // 扉
+  ramp(["#000000", "#050505", "#0c0c0c", "#161616", "#262626"]),  // 人影
+  ramp(["#050506", "#18181c", "#303036", "#5a5a64", "#8a8a96"]),  // 黒い樹脂
+  ramp(["#100500", "#4a1a00", "#a33c06", "#f06a14", "#ffb070"]),  // パイロン
+];
+const EMIS = new Uint8Array(RAMPS.length);
+EMIS[RP.LIGHT] = 1; EMIS[RP.EXIT] = 1;
+const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => v / 16);
+const BLACK = RAMPS[RP.WALL][0];
+
+// ---------- テクスチャ ----------
+function mkTex(fn) {
+  const b = new Float32Array(T * T), r = new Uint8Array(T * T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const o = fn(x, y); r[y * T + x] = o[0]; b[y * T + x] = o[1];
+  }
+  return { b, r };
+}
+const n = (x, y, s) => hash2(x, y, s + 9000) - 0.5;
+
+function wallOffice(x, y, stain) {
+  if (y >= 28) return [RP.BASE, y === 28 ? 0.85 : 0.6 + n(x, y, 1) * 0.08];
+  if (y === 0) return [RP.WALL, 0.5];
+  let b = 0.66 + n(x, y, 2) * 0.05;
+  const sx = x % 8, sy = y % 6;
+  if (sx === 0) b += 0.06;
+  if (sx === 4 && sy === 3) b += 0.08;
+  if (sx === 4 && (sy === 2 || sy === 4)) b += 0.03;
+  if ((sx === 3 || sx === 5) && sy === 3) b += 0.03;
+  b *= 0.9 + 0.1 * (y / 28);
+  if (stain) {
+    const L = 4 + Math.floor((n(x >> 1, 0, 9) + 0.5) * 20);
+    if (y < L) b *= 0.7 + 0.25 * (y / L);
+    if (y > 19) b *= 0.82 + 0.12 * (n(x >> 1, y >> 2, 10) + 0.5);
+  }
+  return [RP.WALL, b];
+}
+function wallConcrete(x, y) {
+  if (y >= 26) return ((x + y) >> 2) & 1 ? [RP.CAUTION, 0.8] : [RP.PLASTIC, 0.15];
+  if (y === 25) return [RP.CONC, 0.4];
+  let b = 0.56 + n(x, y, 3) * 0.09 + n(x >> 3, y >> 3, 4) * 0.06;
+  if (y % 13 === 0) b -= 0.12;
+  return [RP.CONC, b];
+}
+function wallPool(x, y) {
+  const gx = x % 8, gy = y % 8;
+  if (gx === 0 || gy === 0) return [RP.POOLW, 0.55];
+  if (y >= 24 && y < 32) return [RP.POOLF, 0.75 + n(x >> 3, y >> 3, 5) * 0.08];
+  return [RP.POOLW, 0.84 + n(x >> 3, y >> 3, 6) * 0.06 + (gx === 1 || gy === 1 ? 0.05 : 0)];
+}
+const FONT = {
+  E: ["###", "#..", "##.", "#..", "###"], X: ["#.#", "#.#", ".#.", "#.#", "#.#"],
+  I: ["###", ".#.", ".#.", ".#.", "###"], T: ["###", ".#.", ".#.", ".#.", ".#."],
+};
+function withExit(base) {
+  return (x, y) => {
+    if (x >= 6 && x <= 25 && y >= 5 && y <= 13) {
+      if (x === 6 || x === 25 || y === 5 || y === 13) return [RP.EXIT, 0.35];
+      const lx = x - 9, ly = y - 7;
+      if (ly >= 0 && ly < 5 && lx >= 0 && lx < 15 && lx % 4 < 3) {
+        const ch = "EXIT"[lx >> 2];
+        if (FONT[ch][ly][lx % 4] === "#") return [RP.EXIT, 1.05];
+      }
+      return [RP.EXIT, 0.6];
+    }
+    return base(x, y);
+  };
+}
+function withDoor(base) {
+  return (x, y) => {
+    if (x >= 9 && x <= 22 && y >= 5 && y <= 27) {
+      if (y === 27) return [RP.DOOR, 0.02];                     // 扉の下のすき間は真っ暗
+      if (x === 9 || x === 22 || y === 5) return [RP.DOOR, 0.38];
+      if (x === 19 && (y === 16 || y === 17)) return [RP.CAUTION, 0.75];
+      return [RP.DOOR, 0.6 + n(x, y >> 2, 7) * 0.05 + (x === 10 ? 0.1 : 0)];
+    }
+    return base(x, y);
+  };
+}
+
+const WO = (x, y) => wallOffice(x, y, false);
+const WOS = (x, y) => wallOffice(x, y, true);
+const WALL_TEX = []; // [zone*4 + variant]
+{
+  const office = [mkTex(WO), mkTex(WOS), mkTex(withExit(WO)), mkTex(withDoor(WOS))];
+  const conc = mkTex(wallConcrete), concExit = mkTex(withExit(wallConcrete));
+  const pool = mkTex(wallPool), poolExit = mkTex(withExit(wallPool));
+  WALL_TEX.push(...office, conc, conc, concExit, conc, pool, pool, poolExit, pool, ...office);
+}
+const carpet = (damp) => (x, y) => {
+  let b = 0.55 + n(x, y, 11) * 0.2 + ((((x >> 1) + (y >> 1)) & 1) ? 0.02 : 0);
+  if (damp) {
+    const d = Math.hypot(x - 16 + n(y, 0, 12) * 6, y - 16 + n(x, 0, 13) * 6);
+    if (d < 11) b *= 0.62 + d * 0.02;
+  }
+  return [RP.CARPET, b];
+};
+const concFloor = (line) => (x, y) => {
+  if (line && x < 2 && n(x, y, 14) > -0.35) return [RP.CAUTION, 0.62 + n(x, y, 15) * 0.1];
+  let b = 0.52 + n(x, y, 16) * 0.09 + n(x >> 2, y >> 2, 17) * 0.06;
+  const oil = Math.hypot(x - 20, y - 11);
+  if (!line && oil < 5) b *= 0.7 + oil * 0.05;
+  return [RP.CONCF, b];
+};
+const poolFloor = (x, y) => {
+  const gx = x % 8, gy = y % 8;
+  if (gx === 0 || gy === 0) return [RP.POOLF, 0.45];
+  return [RP.POOLF, 0.7 + n(x >> 3, y >> 3, 18) * 0.08];
+};
+const FLOOR_TEX = [
+  mkTex(carpet(false)), mkTex(carpet(true)),
+  mkTex(concFloor(false)), mkTex(concFloor(true)),
+  mkTex(poolFloor), mkTex(poolFloor),
+  mkTex(carpet(false)), mkTex(carpet(true)),
+];
+const ceilOffice = (x, y) => {
+  const gx = x % 16, gy = y % 16;
+  if (gx === 0 || gy === 0) return [RP.CEIL, 0.4];
+  return [RP.CEIL, 0.64 + (hash2(x, y, 19) < 0.14 ? -0.08 : 0) + n(x, y, 20) * 0.03];
+};
+const ceilConcrete = (x, y) => {
+  if (y >= 12 && y <= 16) return [RP.CONC, y === 13 ? 0.7 : y === 16 ? 0.3 : 0.52];  // 配管
+  return [RP.CONC, 0.34 + n(x, y, 21) * 0.08];
+};
+const ceilPool = (x, y) => {
+  const gx = x % 16, gy = y % 16;
+  return [RP.POOLW, gx === 0 || gy === 0 ? 0.6 : 0.8 + n(x >> 4, y >> 4, 22) * 0.05];
+};
+const CEIL_TEX = [mkTex(ceilOffice), mkTex(ceilConcrete), mkTex(ceilPool), mkTex(ceilOffice)];
+const panel = (dead, base) => (x, y) => {
+  if (x >= 3 && x <= 28 && y >= 8 && y <= 23) {
+    if (x === 3 || x === 28 || y === 8 || y === 23) return [RP.CEIL, 0.55];
+    if (dead) return [RP.CEIL, 0.42 + (x % 4 === 0 ? -0.08 : 0)];
+    return [RP.LIGHT, x % 4 === 0 ? 0.72 : 1.0];
+  }
+  return base(x, y);
+};
+const PANEL_TEX = [
+  [mkTex(panel(false, ceilOffice)), mkTex(panel(true, ceilOffice))],
+  [mkTex(panel(false, ceilConcrete)), mkTex(panel(true, ceilConcrete))],
+  [mkTex(panel(false, ceilPool)), mkTex(panel(true, ceilPool))],
+  [mkTex(panel(false, ceilOffice)), mkTex(panel(true, ceilOffice))],
+];
+
+// ---------- スプライト（ドット絵） ----------
+function sprite(rows, map, ww, wh) {
+  const w = rows[0].length, h = rows.length;
+  const b = new Float32Array(w * h), r = new Uint8Array(w * h), a = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const m = map[rows[y][x]];
+    if (m) { a[y * w + x] = 1; r[y * w + x] = m[0]; b[y * w + x] = m[1]; }
+  }
+  return { w, h, b, r, a, ww, wh };
+}
+const SPR = {
+  chair: sprite([
+    "................",
+    ".....kkkkkk.....",
+    "....kKKKKKKk....",
+    "....kKKKKKKk....",
+    "....kKKKKKKk....",
+    "....kKKKKKKk....",
+    "....kKKKKKKk....",
+    ".....kkkkkk.....",
+    ".......kk.......",
+    "...kkkkkkkkkk...",
+    "..kKKKKKKKKKKk..",
+    "...kkkkkkkkkk...",
+    ".......kk.......",
+    ".......kk.......",
+    "...kkkkkkkkkk...",
+    "..o.o..oo..o.o..",
+  ], { K: [RP.PLASTIC, 0.6], k: [RP.PLASTIC, 0.32], o: [RP.PLASTIC, 0.2] }, 0.56, 0.56),
+  sign: sprite([
+    "................",
+    "......yyyy......",
+    ".....yYYYYy.....",
+    ".....yYYYYy.....",
+    "....yYYkkYYy....",
+    "....yYYkkYYy....",
+    "....yYkkkkYy....",
+    "...yYYYkkYYYy...",
+    "...yYYkYYkYYy...",
+    "...yYYkYYkYYy...",
+    "..yYYYYYYYYYYy..",
+    "..yYkkkkkkkkYy..",
+    "..yYYYYYYYYYYy..",
+    ".yYYYYYYYYYYYYy.",
+    ".yYYYYYYYYYYYYy.",
+    ".yy..........yy.",
+  ], { Y: [RP.CAUTION, 0.85], y: [RP.CAUTION, 0.55], k: [RP.PLASTIC, 0.12] }, 0.5, 0.5),
+  cone: sprite([
+    "............",
+    ".....oo.....",
+    ".....oo.....",
+    "....oOOo....",
+    "....wWWw....",
+    "....wWWw....",
+    "...oOOOOo...",
+    "...oOOOOo...",
+    "...wWWWWw...",
+    "..oOOOOOOo..",
+    "..oOOOOOOo..",
+    "..oOOOOOOo..",
+    ".oOOOOOOOOo.",
+    "kkkkkkkkkkkk",
+    "kKKKKKKKKKKk",
+    "kkkkkkkkkkkk",
+  ], { O: [RP.ORANGE, 0.8], o: [RP.ORANGE, 0.55], W: [RP.POOLW, 0.92], w: [RP.POOLW, 0.7], K: [RP.PLASTIC, 0.3], k: [RP.PLASTIC, 0.15] }, 0.34, 0.45),
+  figure: sprite([
+    "...FFFF...", "..FFFFFF..", "..FFFFFF..", "..FFFFFF..", "..FFFFFF..", "...FFFF...",
+    "....FF....", ".FFFFFFFF.", "FFFFFFFFFF", "FFFFFFFFFF", "FF.FFFF.FF", "FF.FFFF.FF",
+    "FF.FFFF.FF", "FF.FFFF.FF", "F..FFFF..F", "F..FFFF..F", "F..FFFF..F", "F..FFFF..F",
+    "F..FFFF..F", "F..FFFF..F", "...FFFF...", "..FFFFFF..", "..FF..FF..", "..FF..FF..",
+    "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..",
+    "..FF..FF..", ".FFF..FFF.",
+  ], { F: [RP.FIG, 0.35] }, 0.3, 0.94),
+};
+
+// ---------- 空間の生成 ----------
+//  部屋は P×P セルの格子。部屋と部屋の境目に壁の「区間」があり、
+//  区間ごとにハッシュで「無い／すき間1〜2つ付きの壁」を決める。
+//  どの区間にも必ずすき間があるので、すべての部屋はつながっている。
+//  3×3部屋の「区画」ごとに、事務所／消灯区画／駐車場／プールのどれかになる。
+const Z = { OFFICE: 0, HALL: 1, POOL: 2, DARK: 3 };
+const ZONE_NAME = ["B0 黄色い部屋", "B1 地下駐車場", "B2 屋内プール", "B0 消灯区画"];
+function district(rx, ry) { return [Math.floor(rx / 3), Math.floor(ry / 3)]; }
+function zoneOfRoom(rx, ry) {
+  const [dx, dy] = district(rx, ry);
+  if (dx === 0 && dy === 0) return Z.OFFICE;
+  const h = hash2(dx, dy, 77);
+  return h < 0.5 ? Z.OFFICE : h < 0.66 ? Z.DARK : h < 0.83 ? Z.HALL : Z.POOL;
+}
+// 反復区画：部屋のハッシュを2×2で使い回す。同じ部屋が何度も出てくる
+function isLoopRoom(rx, ry) {
+  const [dx, dy] = district(rx, ry);
+  if (dx === 0 && dy === 0) return false;
+  return zoneOfRoom(rx, ry) === Z.OFFICE && hash2(dx, dy, 88) < 0.3;
+}
+function roomKey(rx, ry) { return isLoopRoom(rx, ry) ? [5000 + mod(rx, 2), 5000 + mod(ry, 2)] : [rx, ry]; }
+function segSolid(rx, ry, o, t, za, zb) {
+  if (za === Z.HALL && zb === Z.HALL) return t % 3 === 0;  // 駐車場は柱だけ
+  const [kx, ky] = roomKey(rx, ry), k1 = kx * 2 + o;
+  const h = hash2(k1, ky, 11);
+  const openP = (za === Z.POOL || zb === Z.POOL) ? 0.4 : (za !== zb ? 0.1 : 0.22);
+  if (h < openP) return false;
+  const gw = hash2(k1, ky, 12) < 0.6 ? 1 : 2;
+  const g = 1 + Math.floor(hash2(k1, ky, 13) * (P - gw));
+  if (t >= g && t < g + gw) return false;
+  if (h > 0.9 && t === 1 + Math.floor(hash2(k1, ky, 14) * (P - 1))) return false;
+  return true;
+}
+// セル1つを1バイトに：bit0-1 区画 / bit2 壁 / bit3-4 壁の種類 / bit5 床の種類
+function genCell(x, y) {
+  const rx = Math.floor(x / P), ry = Math.floor(y / P), lx = x - rx * P, ly = y - ry * P;
+  const z = zoneOfRoom(rx, ry);
+  let solid = false, seg = false;
+  if (lx === 0 && ly === 0) solid = true;
+  else if (lx === 0) { solid = segSolid(rx, ry, 0, ly, z, zoneOfRoom(rx - 1, ry)); seg = true; }
+  else if (ly === 0) { solid = segSolid(rx, ry, 1, lx, z, zoneOfRoom(rx, ry - 1)); seg = true; }
+  else if (z === Z.HALL) solid = lx % 3 === 0 && ly % 3 === 0;
+  else if (lx === 3 && ly === 3) { const [kx, ky] = roomKey(rx, ry); solid = hash2(kx, ky, 5) < 0.14; }
+  let v = 0;
+  if (solid) {
+    const h = hash2(x, y, 21);
+    if (seg && h < 0.012) v = 2;                                   // 非常口
+    else if (seg && (z === Z.OFFICE || z === Z.DARK) && h < 0.03) v = 3; // 開かない扉
+    else if (h < (z === Z.DARK ? 0.4 : 0.14)) v = 1;                // しみ
+  }
+  let fv = 0;
+  if (z === Z.HALL) fv = lx % 3 === 1 ? 1 : 0;
+  else if (z !== Z.POOL) fv = hash2(x, y, 31) < (z === Z.DARK ? 0.2 : 0.07) ? 1 : 0;
+  return z | (solid ? 4 : 0) | (v << 3) | (fv << 5);
+}
+const CH = 32, chunks = new Map();
+function cellAt(x, y) {
+  const cx = Math.floor(x / CH), cy = Math.floor(y / CH), key = cx + "," + cy;
+  let c = chunks.get(key);
+  if (!c) {
+    c = new Uint8Array(CH * CH);
+    for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) c[j * CH + i] = genCell(cx * CH + i, cy * CH + j);
+    chunks.set(key, c);
+    if (chunks.size > 300) chunks.delete(chunks.keys().next().value);
+  }
+  return c[(y - cy * CH) * CH + (x - cx * CH)];
+}
+const solidAt = (x, y) => (cellAt(Math.floor(x), Math.floor(y)) & 4) !== 0;
+
+function propOfRoom(rx, ry) {
+  const z = zoneOfRoom(rx, ry), loop = isLoopRoom(rx, ry);
+  const [kx, ky] = roomKey(rx, ry);
+  if (!loop && hash2(kx, ky, 41) > 0.07) return null;
+  const x = rx * P + 1 + Math.floor(hash2(kx, ky, 42) * 4) + 0.5;
+  const y = ry * P + 1 + Math.floor(hash2(kx, ky, 43) * 4) + 0.5;
+  if (solidAt(x, y)) return null;
+  return { x, y, spr: z === Z.POOL ? SPR.sign : z === Z.HALL ? SPR.cone : SPR.chair };
+}
+
+// ---------- 照明 ----------
+//  蛍光灯は3セルおきの格子に並ぶ。区画ごとに「点いている／切れている／ちらつく」の割合が違う
+const LN = Math.ceil(G / 3) + 8;
+const lampType = new Uint8Array(LN * LN);   // 0なし 1点灯 2切れ 3ちらつき
+const lampZone = new Uint8Array(LN * LN);
+const lampH = new Float32Array(LN * LN);
+const lampI = new Float32Array(LN * LN);
+const lm = new Float32Array(G1 * G1);
+const cells = new Uint8Array(G * G);
+let ox = 0, oy = 0, LA0 = 0, LB0 = 0, gridKey = "";
+
+function lampAt(a, b) {
+  const c = cellAt(3 * a + 1, 3 * b + 1), z = c & 3, r = hash2(a, b, 51);
+  if (c & 4) return [0, z];
+  if (z === Z.OFFICE) return [r < 0.07 ? 2 : r < 0.13 ? 3 : 1, z];
+  if (z === Z.DARK) return [r < 0.82 ? 2 : r < 0.9 ? 3 : 1, z];
+  if (z === Z.HALL) {
+    if (mod(a, 2) || mod(b, 2)) return [0, z];
+    return [r < 0.25 ? 2 : r < 0.35 ? 3 : 1, z];
+  }
+  return [r < 0.04 ? 3 : 1, z];
+}
+function refreshGrid(px, py) {
+  const nx = Math.floor(px) - R, ny = Math.floor(py) - R, key = nx + "," + ny;
+  if (key === gridKey) return;
+  gridKey = key; ox = nx; oy = ny;
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) cells[j * G + i] = cellAt(ox + i, oy + j);
+  LA0 = Math.floor((ox - 1.5) / 3) - 3; LB0 = Math.floor((oy - 1.5) / 3) - 3;
+  for (let j = 0; j < LN; j++) for (let i = 0; i < LN; i++) {
+    const [t, z] = lampAt(LA0 + i, LB0 + j), k = j * LN + i;
+    lampType[k] = t; lampZone[k] = z; lampH[k] = hash2(LA0 + i, LB0 + j, 52);
+  }
+}
+const ZONE_LAMP = [1.0, 0.95, 1.12, 1.0];
+function updateLamps(t) {
+  for (let k = 0; k < LN * LN; k++) {
+    const ty = lampType[k];
+    if (ty === 0 || ty === 2) { lampI[k] = 0; continue; }
+    let I = ZONE_LAMP[lampZone[k]];
+    if (ty === 3) {
+      const h = lampH[k] * 100;
+      const v = Math.sin(t * (9 + h * 0.2)) + Math.sin(t * (23 + h * 0.31) + h) + Math.sin(t * 2.1 + h * 0.5) * 1.5;
+      I *= v > 1.1 ? 0.06 : v > 0.8 ? 0.45 : 1;
+    }
+    if (ev.stutter > 0) I *= hash2(k, Math.floor(t * 18), 53) > 0.45 ? 1 : 0.05;
+    if (ev.black) {
+      const a = LA0 + k % LN, b = LB0 + Math.floor(k / LN);
+      const d = Math.hypot(3 * a + 1.5 - pl.x, 3 * b + 1.5 - pl.y);
+      if (d > ev.blackR) I = 0;
+    }
+    lampI[k] = I;
+  }
+  // 格子の角ごとに明るさを足し合わせる（あとで双線形補間）
+  for (let j = 0; j <= G; j++) {
+    const Y = oy + j, b0 = Math.floor((Y - 1.5) / 3) - 1;
+    for (let i = 0; i <= G; i++) {
+      const X = ox + i, a0 = Math.floor((X - 1.5) / 3) - 1;
+      let L = 0.045;
+      for (let b = b0; b <= b0 + 3; b++) {
+        const lb = b - LB0, dy = 3 * b + 1.5 - Y;
+        for (let a = a0; a <= a0 + 3; a++) {
+          const I = lampI[lb * LN + (a - LA0)];
+          if (I === 0) continue;
+          const dx = 3 * a + 1.5 - X;
+          L += I * 0.78 / (1 + (dx * dx + dy * dy + 0.3) * 0.42);
+        }
+      }
+      lm[j * G1 + i] = L;
+    }
+  }
+}
+function lightAt(wx, wy) {
+  const lx = wx - ox, ly = wy - oy;
+  if (lx < 0 || ly < 0 || lx >= G || ly >= G) return 0;
+  const i = lx | 0, j = ly | 0, fx = lx - i, fy = ly - j, k = j * G1 + i;
+  const a = lm[k] + (lm[k + 1] - lm[k]) * fx, c = lm[k + G1] + (lm[k + G1 + 1] - lm[k + G1]) * fx;
+  return a + (c - a) * fy;
+}
+
+// ---------- 描画 ----------
+const FOGN = 1024, FOGS = FOGN / MAXD;
+const fogLUT = new Float32Array(FOGN + 2);
+for (let i = 0; i <= FOGN + 1; i++) fogLUT[i] = Math.pow(Math.max(0, 1 - i / FOGN), 1.55);
+const vig = new Float32Array(W * H);
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2);
+  vig[y * W + x] = 1 - 0.42 * Math.pow(Math.min(1, (dx * dx * 0.8 + dy * dy) / 1.8), 1.3);
+}
+const floorDist = new Float32Array(H), ceilDist = new Float32Array(H);
+const zbuf = new Float32Array(W);
+
+const pl = { x: 2.5, y: 2.5, a: 0.35, pitch: 0, camZ: 0.5, bob: 0 };
+
+function render(tt) {
+  const dirX = Math.cos(pl.a), dirY = Math.sin(pl.a);
+  const plX = -dirY * PL, plY = dirX * PL;
+  const hz = H / 2 + pl.pitch;
+  const camZ = pl.camZ;
+  const lpx = pl.x - ox, lpy = pl.y - oy;
+  const fade = st.fade;
+  for (let y = 0; y < H; y++) {
+    floorDist[y] = y + 0.5 > hz ? camZ * PROJ / (y + 0.5 - hz) : 1e9;
+    ceilDist[y] = y + 0.5 < hz ? (1 - camZ) * PROJ / (hz - y - 0.5) : 1e9;
+  }
+  const mx = mod(ox, 3), my = mod(oy, 3);
+
+  for (let x = 0; x < W; x++) {
+    const cam = 2 * (x + 0.5) / W - 1;
+    const rdx = dirX + plX * cam, rdy = dirY + plY * cam;
+    // --- 壁（DDA） ---
+    let mapX = lpx | 0, mapY = lpy | 0;
+    const ddx = Math.abs(1 / rdx), ddy = Math.abs(1 / rdy);
+    let stepX, stepY, sdx, sdy;
+    if (rdx < 0) { stepX = -1; sdx = (lpx - mapX) * ddx; } else { stepX = 1; sdx = (mapX + 1 - lpx) * ddx; }
+    if (rdy < 0) { stepY = -1; sdy = (lpy - mapY) * ddy; } else { stepY = 1; sdy = (mapY + 1 - lpy) * ddy; }
+    let hit = 0, side = 0, from = cells[(lpy | 0) * G + (lpx | 0)];
+    for (let s = 0; s < 64; s++) {
+      if (sdx < sdy) { sdx += ddx; mapX += stepX; side = 0; } else { sdy += ddy; mapY += stepY; side = 1; }
+      if (mapX < 0 || mapY < 0 || mapX >= G || mapY >= G) break;
+      const c = cells[mapY * G + mapX];
+      if (c & 4) { hit = c; break; }
+      from = c;
+    }
+    let dist = hit ? (side === 0 ? sdx - ddx : sdy - ddy) : 1e9;
+    if (dist > MAXD) { hit = 0; dist = 1e9; }
+    zbuf[x] = dist;
+    let y0 = Math.floor(hz), y1 = y0;
+    if (hit) {
+      const lineH = PROJ / dist;
+      const top = hz - (1 - camZ) * lineH, bot = hz + camZ * lineH;
+      y0 = Math.max(0, Math.ceil(top - 0.5)); y1 = Math.min(H, Math.ceil(bot - 0.5));
+      let wx = side === 0 ? lpy + dist * rdy : lpx + dist * rdx;
+      wx -= Math.floor(wx);
+      let tx = (wx * T) | 0;
+      if (side === 0 && rdx < 0) tx = T - 1 - tx;
+      if (side === 1 && rdy > 0) tx = T - 1 - tx;
+      // 壁の素材は「見ている側の部屋」に合わせる
+      const tex = WALL_TEX[(from & 3) * 4 + ((hit >> 3) & 3)];
+      const fog = fogLUT[(dist * FOGS) | 0];
+      const L = lightAt(pl.x + rdx * (dist - 0.04), pl.y + rdy * (dist - 0.04));
+      const base = L * fog * (side ? 0.8 : 1) * fade;
+      const efog = fog * fade;
+      for (let y = y0; y < y1; y++) {
+        let ty = (((y + 0.5 - top) / lineH) * T) | 0; if (ty > T - 1) ty = T - 1;
+        const k = ty * T + tx, rp = tex.r[k];
+        const s = tex.b[k] * (EMIS[rp] ? efog : base) * vig[y * W + x];
+        let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
+        buf[y * W + x] = RAMPS[rp][idx];
+      }
+    }
+    // --- 床 ---
+    for (let y = Math.max(y1, 0); y < H; y++) {
+      const d = floorDist[y];
+      if (d >= MAXD) { buf[y * W + x] = BLACK; continue; }
+      const wx = lpx + rdx * d, wy = lpy + rdy * d;
+      const ci = wx | 0, cj = wy | 0;
+      const c = cells[cj * G + ci], z = c & 3;
+      const tex = FLOOR_TEX[z * 2 + ((c >> 5) & 1)];
+      const fx = wx - ci, fy = wy - cj;
+      const k = ((fy * T) | 0) * T + ((fx * T) | 0);
+      let b = tex.b[k];
+      if (z === Z.POOL) b *= 0.92 + 0.14 * Math.sin(wx * 2.3 + tt * 1.1) * Math.sin(wy * 2.1 - tt * 0.8 + wx * 0.7);
+      const li = cj * G1 + ci;
+      const l0 = lm[li] + (lm[li + 1] - lm[li]) * fx, l1 = lm[li + G1] + (lm[li + G1 + 1] - lm[li + G1]) * fx;
+      const s = b * (l0 + (l1 - l0) * fy) * fogLUT[(d * FOGS) | 0] * vig[y * W + x] * fade;
+      let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
+      buf[y * W + x] = RAMPS[tex.r[k]][idx];
+    }
+    // --- 天井 ---
+    for (let y = Math.min(y0, H) - 1; y >= 0; y--) {
+      const d = ceilDist[y];
+      if (d >= MAXD) { buf[y * W + x] = BLACK; continue; }
+      const wx = lpx + rdx * d, wy = lpy + rdy * d;
+      const ci = wx | 0, cj = wy | 0;
+      const c = cells[cj * G + ci], z = c & 3;
+      let tex = CEIL_TEX[z], li = -1;
+      if ((ci + mx) % 3 === 1 && (cj + my) % 3 === 1) {
+        const la = (ci + ox - 1) / 3 - LA0, lb = (cj + oy - 1) / 3 - LB0;
+        li = lb * LN + la;
+        const ty = lampType[li];
+        if (ty) tex = PANEL_TEX[z][ty === 2 ? 1 : 0]; else li = -1;
+      }
+      const fx = wx - ci, fy = wy - cj;
+      const k = ((fy * T) | 0) * T + ((fx * T) | 0);
+      const rp = tex.r[k];
+      const fog = fogLUT[(d * FOGS) | 0] * vig[y * W + x] * fade;
+      let s;
+      if (EMIS[rp]) s = tex.b[k] * (0.1 + 0.9 * lampI[li]) * fog;
+      else {
+        const lj = cj * G1 + ci;
+        const l0 = lm[lj] + (lm[lj + 1] - lm[lj]) * fx, l1 = lm[lj + G1] + (lm[lj + G1 + 1] - lm[lj + G1]) * fx;
+        s = tex.b[k] * (l0 + (l1 - l0) * fy) * fog;
+      }
+      let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
+      buf[y * W + x] = RAMPS[rp][idx];
+    }
+  }
+  drawSprites(dirX, dirY, plX, plY, hz, camZ, fade);
+  postFX(tt);
+  ctx.putImageData(img, 0, 0);
+}
+
+function drawSprites(dirX, dirY, plX, plY, hz, camZ, fade) {
+  const list = [];
+  const r0x = Math.floor((pl.x - MAXD) / P), r1x = Math.floor((pl.x + MAXD) / P);
+  const r0y = Math.floor((pl.y - MAXD) / P), r1y = Math.floor((pl.y + MAXD) / P);
+  for (let ry = r0y; ry <= r1y; ry++) for (let rx = r0x; rx <= r1x; rx++) {
+    const p = propOfRoom(rx, ry); if (p) list.push(p);
+  }
+  if (fig.on) list.push({ x: fig.x, y: fig.y, spr: SPR.figure });
+  const inv = 1 / (plX * dirY - dirX * plY);
+  for (const p of list) { const dx = p.x - pl.x, dy = p.y - pl.y; p.d = dx * dx + dy * dy; }
+  list.sort((a, b) => b.d - a.d);
+  for (const p of list) {
+    const rx = p.x - pl.x, ry = p.y - pl.y;
+    const tX = inv * (dirY * rx - dirX * ry), tY = inv * (-plY * rx + plX * ry);
+    if (tY < 0.25 || tY > MAXD) continue;
+    const sp = p.spr;
+    const sx = (W / 2) * (1 + tX / tY);
+    const wpx = sp.ww * PROJ / tY;
+    const yb = hz + camZ * PROJ / tY, yt = hz + (camZ - sp.wh) * PROJ / tY;
+    const x0 = Math.max(0, Math.ceil(sx - wpx / 2 - 0.5)), x1 = Math.min(W, Math.ceil(sx + wpx / 2 - 0.5));
+    const y0 = Math.max(0, Math.ceil(yt - 0.5)), y1 = Math.min(H, Math.ceil(yb - 0.5));
+    const base = lightAt(p.x, p.y) * fogLUT[(tY * FOGS) | 0] * fade;
+    for (let x = x0; x < x1; x++) {
+      if (tY >= zbuf[x]) continue;
+      const tx = Math.min(sp.w - 1, (((x + 0.5 - (sx - wpx / 2)) / wpx) * sp.w) | 0);
+      for (let y = y0; y < y1; y++) {
+        const ty = Math.min(sp.h - 1, (((y + 0.5 - yt) / (yb - yt)) * sp.h) | 0);
+        const k = ty * sp.w + tx;
+        if (!sp.a[k]) continue;
+        const s = sp.b[k] * base * vig[y * W + x];
+        let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
+        buf[y * W + x] = RAMPS[sp.r[k]][idx];
+      }
+    }
+  }
+}
+
+// ビデオテープの乱れ
+const rowTmp = new Uint32Array(W);
+function postFX(tt) {
+  const g = st.glitch;
+  for (let y = 0; y < H; y++) {
+    const r = Math.random();
+    let off = 0;
+    if (g > 0 && r < 0.18 * g) off = ((Math.random() - 0.5) * 18 * g) | 0;
+    else if (r < 0.004) off = Math.random() < 0.5 ? -1 : 1;
+    if (!off) continue;
+    const row = y * W;
+    rowTmp.set(buf.subarray(row, row + W));
+    for (let x = 0; x < W; x++) buf[row + x] = rowTmp[mod(x - off, W)];
+  }
+  // ゆっくり流れるトラッキングノイズ
+  const band = Math.floor((tt * 23) % (H + 60)) - 30;
+  const amt = 0.05 + g * 0.6;
+  for (let y = Math.max(0, band); y < Math.min(H, band + 3); y++) {
+    for (let x = 0; x < W; x++) if (Math.random() < amt) {
+      const v = (Math.random() * 180) | 0;
+      buf[y * W + x] = (255 << 24) | (v << 16) | (v << 8) | v;
+    }
+  }
+}
+
+// ---------- 音 ----------
+const au = { ac: null };
+function initAudio() {
+  if (au.ac) { au.ac.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  const ac = new AC(); au.ac = ac;
+  const master = ac.createGain(); master.gain.value = 0.8; master.connect(ac.destination);
+  const len = Math.floor(ac.sampleRate * 2.8), ir = ac.createBuffer(2, len, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+  }
+  const verb = ac.createConvolver(); verb.buffer = ir;
+  const wet = ac.createGain(); wet.gain.value = 0.2;
+  verb.connect(wet); wet.connect(master);
+  const sfx = ac.createGain(); sfx.connect(master); sfx.connect(verb);
+  const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  // 蛍光灯のハム：60Hzのノコギリ波＋少しずれた120Hzでうなりを作る
+  const humF = ac.createBiquadFilter(); humF.type = "lowpass"; humF.frequency.value = 480; humF.Q.value = 0.8;
+  const hum = ac.createGain(); hum.gain.value = 0;
+  const o1 = ac.createOscillator(); o1.type = "sawtooth"; o1.frequency.value = 60;
+  const o2 = ac.createOscillator(); o2.type = "square"; o2.frequency.value = 120.6;
+  const o2g = ac.createGain(); o2g.gain.value = 0.22;
+  o1.connect(humF); o2.connect(o2g); o2g.connect(humF); humF.connect(hum); hum.connect(master);
+  o1.start(); o2.start();
+  // 空調のサー音
+  const air = ac.createBufferSource(); air.buffer = nb; air.loop = true;
+  const airF = ac.createBiquadFilter(); airF.type = "bandpass"; airF.frequency.value = 900; airF.Q.value = 0.6;
+  const airG = ac.createGain(); airG.gain.value = 0.02;
+  air.connect(airF); airF.connect(airG); airG.connect(master); air.start();
+  Object.assign(au, { master, verb, wet, sfx, nb, hum, o1, humF });
+}
+function burst({ freq, type = "lowpass", q = 0.8, vol = 0.5, dur = 0.1, pan = 0, when = 0, dry = true }) {
+  const ac = au.ac; if (!ac) return;
+  const t = ac.currentTime + when;
+  const src = ac.createBufferSource(); src.buffer = au.nb;
+  const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let out = g;
+  if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
+  src.connect(f); f.connect(g);
+  out.connect(dry ? au.sfx : au.verb);
+  src.start(t, Math.random() * 0.8, dur + 0.05);
+}
+function footstep(z, vol = 1, pan = 0, when = 0) {
+  if (z === Z.OFFICE || z === Z.DARK) {
+    burst({ freq: 380, vol: 0.35 * vol, dur: 0.13, pan, when });
+    burst({ freq: 250, vol: 0.18 * vol, dur: 0.1, pan, when: when + 0.045 }); // 湿った感じ
+  } else {
+    burst({ freq: z === Z.POOL ? 2200 : 1500, type: "bandpass", q: 1.4, vol: 0.4 * vol, dur: 0.07, pan, when });
+  }
+}
+function clunk(vol = 0.5) {
+  const ac = au.ac; if (!ac) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+  o.type = "square"; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+  g.gain.setValueAtTime(vol * 0.25, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+  o.connect(g); g.connect(au.sfx); o.start(t); o.stop(t + 0.2);
+  burst({ freq: 3000, type: "highpass", vol: vol * 0.3, dur: 0.03 });
+}
+function farSlam() { burst({ freq: 160, vol: 0.9, dur: 0.7, pan: Math.random() * 1.6 - 0.8, dry: false }); }
+function farSteps() {
+  const pan = Math.random() < 0.5 ? -0.7 : 0.7, z = zoneHere();
+  for (let i = 0; i < 7; i++) footstep(z, 0.28 * (1 - i / 9), pan, i * 0.58 + Math.random() * 0.04);
+}
+
+// ---------- 状態 ----------
+const st = { running: false, started: false, fade: 0, glitch: 0, t: 0, dist: 0, walkT: 0, lastEcho: -99 };
+const ev = { next: 45 + Math.random() * 25, stutter: 0, black: false, blackT: 0, blackR: 99, blackStep: 99, humCut: 0 };
+const fig = { on: false, x: 0, y: 0, t: 0, away: 0 };
+const seenZone = new Set([Z.OFFICE]);
+const said = new Set();
+const keys = new Set();
+
+const $ = (id) => document.getElementById(id);
+function say(text, id = text) {
+  if (said.has(id)) return;
+  said.add(id);
+  const m = $("msg"); m.textContent = text; m.classList.add("on");
+  clearTimeout(say.t); say.t = setTimeout(() => m.classList.remove("on"), 4200);
+}
+const zoneHere = () => cellAt(Math.floor(pl.x), Math.floor(pl.y)) & 3;
+
+function losClear(x0, y0, x1, y1) {
+  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 0.2);
+  for (let i = 1; i < n; i++) if (solidAt(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)) return false;
+  return true;
+}
+function angTo(x, y) {
+  let d = Math.atan2(y - pl.y, x - pl.x) - pl.a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+// 人影：視線の先の遠くに立たせる。近づくか、目を離すと消える
+function spawnFigure() {
+  for (let tries = 0; tries < 12; tries++) {
+    const a = pl.a + (Math.random() - 0.5) * 0.5, D = 9 + Math.random() * 7;
+    let reach = 0;
+    for (let d = 0.3; d <= D; d += 0.2) { if (solidAt(pl.x + Math.cos(a) * d, pl.y + Math.sin(a) * d)) break; reach = d; }
+    if (reach < 8) continue;
+    const x = pl.x + Math.cos(a) * reach, y = pl.y + Math.sin(a) * reach;
+    const fx = Math.floor(x) + 0.5, fy = Math.floor(y) + 0.5;
+    if (solidAt(fx, fy) || !losClear(pl.x, pl.y, fx, fy)) continue;
+    Object.assign(fig, { on: true, x: fx, y: fy, t: 0, away: 0 });
+    if (au.o1) au.o1.frequency.setTargetAtTime(57.5, au.ac.currentTime, 2);
+    return true;
+  }
+  return false;
+}
+function hideFigure(loud) {
+  fig.on = false;
+  if (au.o1) au.o1.frequency.setTargetAtTime(60, au.ac.currentTime, 0.5);
+  if (loud) {
+    ev.stutter = 0.9; st.glitch = 1; ev.humCut = 3.5; clunk(0.6);
+    setTimeout(() => say("……いまのは、誰だ。", "fig"), 1400);
+  }
+}
+function updateFigure(dt) {
+  if (!fig.on) return;
+  fig.t += dt;
+  const d = Math.hypot(fig.x - pl.x, fig.y - pl.y);
+  const inView = Math.abs(angTo(fig.x, fig.y)) < Math.atan(PL) + 0.05 && losClear(pl.x, pl.y, fig.x, fig.y);
+  if (inView && d < 6.5) { hideFigure(true); return; }
+  fig.away = inView ? 0 : fig.away + dt;
+  if (fig.away > 1.2 || (fig.t > 30 && !inView)) hideFigure(false);
+}
+
+function updateEvents(dt) {
+  const t = st.t;
+  ev.stutter = Math.max(0, ev.stutter - dt);
+  ev.humCut = Math.max(0, ev.humCut - dt);
+  st.glitch = Math.max(0, st.glitch - dt * 1.6);
+  if (ev.black) {
+    const e = t - ev.blackT;
+    ev.blackR = e < 4 ? 22 - e * 4.8 : 2.8;
+    const step = Math.floor(ev.blackR / 3);
+    if (step !== ev.blackStep) { ev.blackStep = step; clunk(0.35); }
+    if (e > 7.5) {
+      ev.black = false; ev.blackR = 99; clunk(0.9); st.glitch = 0.6;
+      say("明かりが戻った。", "black");
+    }
+  }
+  if (t > ev.next && !ev.black && !fig.on) {
+    const r = Math.random();
+    if (r < 0.36) { if (!spawnFigure()) farSlam(); }
+    else if (r < 0.56) { ev.black = true; ev.blackT = t; ev.blackStep = 99; }
+    else if (r < 0.7) ev.humCut = 7;
+    else if (r < 0.85) farSteps();
+    else farSlam();
+    ev.next = t + 35 + Math.random() * 50;
+  }
+}
+
+function tryMove(nx, ny) {
+  const r = 0.22;
+  const hit = (x, y) => solidAt(x - r, y - r) || solidAt(x + r, y - r) || solidAt(x - r, y + r) || solidAt(x + r, y + r);
+  if (!hit(nx, pl.y)) pl.x = nx;
+  if (!hit(pl.x, ny)) pl.y = ny;
+}
+
+const touch = { id: null, x: 0, y: 0, walk: false };
+function update(dt) {
+  st.t += dt;
+  const t = st.t;
+  st.fade = Math.min(1, st.fade + dt / 2.6);
+  // 入った直後は少し上から落ちてくる（壁をすり抜けて落ちた感じ）
+  const fall = Math.max(0, 1 - t / 1.1);
+  let fwd = 0, strafe = 0, turn = 0;
+  if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
+  if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
+  if (keys.has("KeyA")) strafe -= 1;
+  if (keys.has("KeyD")) strafe += 1;
+  if (keys.has("ArrowLeft")) turn -= 1;
+  if (keys.has("ArrowRight")) turn += 1;
+  if (touch.walk) fwd = 1;
+  pl.a += turn * 1.9 * dt;
+  const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const sp = (run ? 2.7 : 1.55) * dt;
+  const len = Math.hypot(fwd, strafe) || 1;
+  const cx = Math.cos(pl.a), sy = Math.sin(pl.a);
+  const mvx = (cx * fwd - sy * strafe) / len * sp, mvy = (sy * fwd + cx * strafe) / len * sp;
+  const ox0 = pl.x, oy0 = pl.y;
+  if (fwd || strafe) tryMove(pl.x + mvx, pl.y + mvy);
+  const moved = Math.hypot(pl.x - ox0, pl.y - oy0);
+  st.dist += moved;
+  const z = zoneHere();
+  if (moved > 0.0005) {
+    st.walkT += dt;
+    const before = Math.floor(pl.bob / Math.PI);
+    pl.bob += moved * (run ? 4.2 : 5.4);
+    if (Math.floor(pl.bob / Math.PI) !== before) footstep(z, run ? 1.2 : 0.9);
+  } else {
+    // 立ち止まると、足音が少しだけ遅れてついてくることがある
+    if (st.walkT > 3 && t > 30 && t - st.lastEcho > 40 && Math.random() < 0.22) {
+      st.lastEcho = t;
+      footstep(z, 0.55, -0.15, 0.38); footstep(z, 0.45, -0.1, 0.95);
+    }
+    st.walkT = 0;
+  }
+  pl.camZ = 0.48 + 0.014 * Math.abs(Math.sin(pl.bob)) + fall * 0.42;
+
+  if (!seenZone.has(z)) {
+    seenZone.add(z);
+    say(["", "排気ガスの匂いがする。", "塩素の匂いがする。水の音はしない。", "この区画には電気が来ていない。"][z], "z" + z);
+  }
+  const m = st.dist * 1.5;
+  if (t > 5) say("蛍光灯の音しかしない。", "hum");
+  if (m > 260) say("同じ部屋を、もう何度も通った気がする。", "loop");
+  if (m > 700) say("非常口の表示は、どこにもつながっていない。", "exit");
+
+  updateEvents(dt);
+  updateFigure(dt);
+  refreshGrid(pl.x, pl.y);
+  updateLamps(t);
+
+  if (au.ac) {
+    const now = au.ac.currentTime;
+    const L = Math.min(1.4, lightAt(pl.x, pl.y));
+    const zm = [1, 0.7, 0.55, 1][z];
+    au.hum.gain.setTargetAtTime(ev.humCut > 0 ? 0 : 0.07 * L * zm, now, ev.humCut > 0 ? 0.02 : 0.3);
+    au.wet.gain.setTargetAtTime([0.14, 0.45, 0.6, 0.22][z], now, 0.8);
+  }
+}
+
+// ---------- HUD ----------
+let hudT = 0;
+function updateHud(dt) {
+  hudT -= dt; if (hudT > 0) return; hudT = 0.25;
+  const s = 3 * 3600 + 14 * 60 + Math.floor(st.t);
+  const hh = Math.floor(s / 3600) % 12 || 12, mm = Math.floor(s / 60) % 60, ss = s % 60;
+  $("clock").textContent = `AM ${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  $("dist").textContent = Math.floor(st.dist * 1.5);
+  $("zone").textContent = ZONE_NAME[zoneHere()];
+}
+
+// ---------- ループ ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (st.running) { update(dt); updateHud(dt); }
+  else if (!st.started) { st.t += dt * 0.25; pl.a += dt * 0.05; refreshGrid(pl.x, pl.y); updateLamps(st.t); st.fade = 0.55; }
+  render(st.t);
+  requestAnimationFrame(frame);
+}
+
+function fit() {
+  const k = Math.min(innerWidth / W, innerHeight / H);
+  const s = k >= 1 ? Math.floor(k) : k;
+  const sc = $("screen");
+  sc.style.width = W * s + "px"; sc.style.height = H * s + "px";
+  sc.style.setProperty("--s", Math.max(1, s));
+}
+addEventListener("resize", fit); fit();
+
+const hasLock = "requestPointerLock" in cvs && matchMedia("(pointer: fine)").matches;
+function start() {
+  initAudio();
+  if (!st.started) {
+    st.started = true; st.t = 0; st.fade = 0; st.glitch = 1.2;
+    pl.a = 0.35; pl.pitch = 0;
+    setTimeout(() => { burst({ freq: 200, vol: 0.9, dur: 0.35 }); }, 900);
+  }
+  $("hud").hidden = false;
+  if (hasLock) cvs.requestPointerLock(); else resume();
+}
+function resume() { st.running = true; $("overlay").hidden = true; last = performance.now(); if (au.ac) au.ac.resume(); }
+function pause() {
+  st.running = false; keys.clear();
+  $("overlay").hidden = false;
+  $("go").textContent = "クリックして戻る";
+  if (au.ac) au.ac.suspend();
+}
+$("overlay").addEventListener("click", start);
+document.addEventListener("pointerlockchange", () => {
+  if (document.pointerLockElement === cvs) resume(); else if (st.running) pause();
+});
+cvs.addEventListener("click", () => { if (st.started && !st.running) start(); });
+addEventListener("mousemove", (e) => {
+  if (!st.running || document.pointerLockElement !== cvs) return;
+  pl.a += e.movementX * 0.0024;
+  pl.pitch = Math.max(-48, Math.min(48, pl.pitch - e.movementY * 0.25));
+});
+addEventListener("keydown", (e) => {
+  if (!st.running) return;
+  keys.add(e.code);
+  if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
+});
+addEventListener("keyup", (e) => keys.delete(e.code));
+addEventListener("blur", () => { if (st.running && !hasLock) pause(); keys.clear(); });
+cvs.addEventListener("touchstart", (e) => {
+  if (!st.running) return;
+  const t = e.changedTouches[0];
+  Object.assign(touch, { id: t.identifier, x: t.clientX, y: t.clientY, walk: true });
+  e.preventDefault();
+}, { passive: false });
+cvs.addEventListener("touchmove", (e) => {
+  for (const t of e.changedTouches) if (t.identifier === touch.id) {
+    pl.a += (t.clientX - touch.x) * 0.006;
+    pl.pitch = Math.max(-40, Math.min(40, pl.pitch - (t.clientY - touch.y) * 0.3));
+    touch.x = t.clientX; touch.y = t.clientY;
+  }
+  e.preventDefault();
+}, { passive: false });
+cvs.addEventListener("touchend", (e) => {
+  for (const t of e.changedTouches) if (t.identifier === touch.id) { touch.walk = false; touch.id = null; }
+});
+if (!hasLock) $("keys").innerHTML = "押しているあいだ前へ歩く・なぞって向きを変える<br>ヘッドホン推奨";
+
+refreshGrid(pl.x, pl.y);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
