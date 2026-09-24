@@ -83,6 +83,21 @@
   .prog i { display: block; height: 100%; width: 0; background: var(--hud); }
   .hud-r { display: flex; gap: 2.4cqw; letter-spacing: 0.1em; }
   .hud-r .hi { opacity: 0.6; }
+  .hud-rr { display: grid; justify-items: end; gap: 1cqw; }
+  .btns { display: flex; gap: 1cqw; pointer-events: auto; }
+  .btns button {
+    font: inherit; font-size: 1.9cqw; color: var(--hud); background: transparent;
+    border: 0.25cqw solid var(--hud); padding: 0.2cqw 1cqw; cursor: pointer; opacity: 0.75;
+  }
+  .btns button:hover, .btns button:focus-visible { opacity: 1; outline: none; }
+  .mult { opacity: 0.85; }
+  .hint {
+    position: absolute; left: 50%; bottom: 3cqw; transform: translateX(-50%);
+    max-width: 90%; box-sizing: border-box;
+    padding: 0.8cqw 1.8cqw; font-size: 2.2cqw; line-height: 1.5; text-align: center;
+    color: var(--hud); background: var(--hudbg); border: 0.25cqw solid var(--hud);
+    pointer-events: none; animation: bannerIn 3.6s steps(14) forwards;
+  }
   .hud-r .blink { animation: blink 0.25s steps(1) 4; }
   @keyframes blink { 50% { visibility: hidden; } }
 
@@ -159,36 +174,45 @@
     <p class="net" id="net">接続を確認中…</p>
   </header>
 
-  <div class="stage" id="stage" tabindex="0" aria-label="ゲーム画面。スペースキーでジャンプ">
+  <div class="stage" id="stage" tabindex="0" aria-label="ゲーム画面。クリックでジャンプ、長押しで大ジャンプ">
     <canvas id="cv" width="320" height="180"></canvas>
     <div class="hud">
       <div class="hud-l">
         <b id="stName">STAGE 01 BOOT</b>
         <div class="prog"><i id="prog"></i></div>
+        <span class="mult" id="multTxt">×1.0</span>
       </div>
-      <div class="hud-r"><span class="hi" id="hiTxt">HI 00000</span><span id="scTxt">00000</span></div>
+      <div class="hud-rr">
+        <div class="hud-r"><span class="hi" id="hiTxt">HI 00000</span><span id="scTxt">00000</span></div>
+        <div class="btns">
+          <button type="button" id="btnPause" aria-label="一時停止">II</button>
+          <button type="button" id="btnMute" aria-label="サウンド切り替え">SOUND ON</button>
+        </div>
+      </div>
     </div>
+    <div class="hint" id="hint" hidden></div>
     <div class="banner" id="banner" hidden>
       <small id="bnNo"></small><strong id="bnName"></strong><span id="bnJp"></span><em id="bnRule"></em>
     </div>
     <div class="screen" id="scTitle">
       <h2>BIT RUNNER</h2>
       <p id="titleSub">オフラインモードで起動しました</p>
-      <p class="press">SPACE でスタート</p>
+      <p class="press">クリックでスタート</p>
     </div>
     <div class="screen" id="scOver" hidden>
       <h2>SYSTEM DOWN</h2>
       <div class="stats">
+        <span><small>SCORE</small><b id="ovScore">0</b></span>
         <span><small>DISTANCE</small><b id="ovDist">0m</b></span>
         <span><small>STAGE</small><b id="ovStage">01 BOOT</b></span>
-        <span><small>BEST</small><b id="ovBest">0m</b></span>
+        <span><small>BEST</small><b id="ovBest">0</b></span>
       </div>
       <p id="ovNew" class="new" hidden>NEW RECORD</p>
-      <p class="press">SPACE でリトライ</p>
+      <p class="press">クリックでリトライ</p>
     </div>
     <div class="screen" id="scPause" hidden>
       <h2>PAUSE</h2>
-      <p>P で再開</p>
+      <p>クリックで再開</p>
     </div>
   </div>
 
@@ -196,10 +220,11 @@
     <div class="card">
       <h3>操作</h3>
       <ul class="keys">
-        <li><kbd>Space</kbd><kbd>↑</kbd> ジャンプ（長押しで高く）</li>
-        <li><kbd>↓</kbd> しゃがむ／空中で急降下</li>
-        <li><kbd>P</kbd> 一時停止　<kbd>M</kbd> <span id="muteTxt">サウンド ON</span></li>
+        <li><kbd>クリック</kbd> 小ジャンプ</li>
+        <li><kbd>長押し</kbd> 大ジャンプ／上ルートへ</li>
+        <li><kbd>跳ばない</kbd> 高いドローンはくぐる</li>
       </ul>
+      <p class="foot">道が分かれたら、上に行くか決めよう。上はチップが多いが足場が途切れる。ワールドの最後は金のゲート（倍率+0.5・加速）か、下のゲートかを選ぶ。Space キーでも操作できます。</p>
     </div>
     <div class="card">
       <h3>ステージ</h3>
@@ -228,31 +253,31 @@ const STAGES = [
     table: [['pylon', 1], ['block', 0.6], ['pylon2', 0.4]],
     pal: { skyT: '#f7f7f7', skyB: '#f7f7f7', far: '#e2e2e2', near: '#d4d4d4', win: '#f7f7f7',
       floor: '#f7f7f7', floorHi: '#535353', ink: '#535353', body: '#f7f7f7', visor: '#9a9a9a',
-      obs: '#535353', obsHi: '#535353', hud: '#535353' } },
+      obs: '#535353', obsHi: '#535353', hud: '#535353', chip: '#535353' } },
   { id: 'FACTORY', jp: '工場地帯', len: 400, grav: 1, bg: 'factory',
-    rule: 'ドローン出現。低いものは跳び、中くらいはしゃがめ',
+    rule: 'ドローン出現。低いのは跳べ、高いのは跳ぶな',
     table: [['crate', 1], ['pipe', 0.7], ['crate2', 0.45], ['drone', 0.8], ['pylon', 0.3]],
     pal: { skyT: '#231510', skyB: '#8a431c', far: '#5a301b', near: '#3c2113', win: '#ffb03a',
       floor: '#2b170d', floorHi: '#d07a30', ink: '#120804', body: '#efe1c8', visor: '#ffb03a',
-      obs: '#1c0f08', obsHi: '#ff9a2e', hud: '#ffd9a8' } },
+      obs: '#1c0f08', obsHi: '#ff9a2e', hud: '#ffd9a8', chip: '#ffd23f' } },
   { id: 'NEON CITY', jp: 'ネオン都市', len: 500, grav: 1, bg: 'city',
     rule: 'レーザーは点滅する。消えた瞬間を抜けろ',
     table: [['laser', 1], ['drone', 0.7], ['car', 0.5], ['block', 0.5], ['crate', 0.3]],
     pal: { skyT: '#10052a', skyB: '#4f1368', far: '#35105a', near: '#1f0a3a', win: '#ff4fb0',
       floor: '#130524', floorHi: '#ff3ea5', ink: '#06020e', body: '#eef0ff', visor: '#3effd9',
-      obs: '#0c0320', obsHi: '#3effd9', hud: '#f4e8ff' } },
+      obs: '#0c0320', obsHi: '#3effd9', hud: '#f4e8ff', chip: '#ffd23f' } },
   { id: 'ORBIT', jp: '月面軌道', len: 500, grav: 0.55, bg: 'orbit',
     rule: '低重力。高く跳べるが着地は遅い。隕石の影を見ろ',
     table: [['gap', 1], ['meteor', 0.8], ['rock', 0.8], ['drone', 0.25]],
     pal: { skyT: '#020309', skyB: '#0d1433', far: '#2a3050', near: '#4b5070', win: '#7aa2ff',
       floor: '#6f7390', floorHi: '#c9ccde', ink: '#15172a', body: '#ffffff', visor: '#7aa2ff',
-      obs: '#353850', obsHi: '#c9ccde', hud: '#e3e7ff' } },
+      obs: '#353850', obsHi: '#c9ccde', hud: '#e3e7ff', chip: '#ffd23f' } },
   { id: 'CYBER', jp: '電脳空間', len: 600, grav: 1, bg: 'cyber',
-    rule: 'グリッチブロックは瞬間移動する。残像を読め',
+    rule: 'グリッチは瞬間移動する。残像の位置で跳ぶか決めろ',
     table: [['glitch', 1.1], ['laser', 0.5], ['gap', 0.5], ['drone', 0.5], ['block', 0.4], ['meteor', 0.25]],
     pal: { skyT: '#000704', skyB: '#002412', far: '#00391c', near: '#005227', win: '#39ff88',
       floor: '#00160a', floorHi: '#39ff88', ink: '#000000', body: '#d6ffe6', visor: '#39ff88',
-      obs: '#00110a', obsHi: '#39ff88', hud: '#b8ffd6' } },
+      obs: '#00110a', obsHi: '#39ff88', hud: '#b8ffd6', chip: '#eaff5a' } },
 ];
 const LOOP_LEN = STAGES.slice(1).reduce((a, s) => a + s.len, 0);
 
@@ -286,11 +311,7 @@ const SPR = {
     '..kbkvvvvkbk..', '..kbkkkkkkbk..', '..kbbbbbbbbk..', '...kkkkkkkk...', '..kbbbbbbbbk..',
     '.kkbbvbbbbbkk.', '..kbbbbbbbbk..', '...kkkkkkkk...', '...kk....kk...', '..kk......kk..',
     '.kk........k..'],
-  runB: null, jump: null, duck: [
-    '..............', '..............', '..............', '..............', '..............',
-    '..............', '..............', '..kkkkkkkkkkkk', '..kbkvvvvvvvbk', '..kbbbbbbbbbbk',
-    '.kkbbvbbbbbbbk', '..kbbbbbbbbbbk', '..kkkkkkkkkkkk', '...kk.....kk..', '...kk.....kk..',
-    '..............'],
+  runB: null, jump: null,
   droneA: ['k..........k', 'kkk......kkk', '..kkkkkkkk..', '.kbbbvvbbbk.', '..kkkkkkkk..', '....k..k....', '............'],
   droneB: ['............', 'kkk......kkk', 'k.kkkkkkkk.k', '.kbbbvvbbbk.', '..kkkkkkkk..', '....k..k....', '............'],
   cloud: ['........kkkk..........', '.....kkk....kk........', '..kkk..........kkk....', '.k...............kkk..', 'kkkkkkkkkkkkkkkkkkkkkk'],
@@ -523,16 +544,18 @@ function drawFloor(stId, d) {
 let state = 'title';
 let time = 0, distPx = 0, spd = 110;
 let hi = 0, lastMilestone = 0;
-let obs = [], parts = [], nextSpawn = 0, gateFor = -1;
+let obs = [], parts = [], nextSpawn = 0;
+let score = 0, mult = 1, hard = 0, forkFor = -1, lastFork = 0, pendingGate = null, forkHintShown = false;
 let cur = { i: 0, loop: 0 }, bestStage = 0;
 let trans = null; // {from, to, t}
 let shake = 0, flash = 0, overT = 0;
-const p = { y: GROUND, vy: 0, onG: true, duck: false, hold: 0, coyote: 0, fall: false, anim: 0, dead: false };
-const input = { jump: false, jumpBuf: 0, down: false };
+const p = { y: GROUND, vy: 0, onG: true, hold: 0, coyote: 0, fall: false, anim: 0, dead: false };
+const input = { jump: false, jumpBuf: 0 };
 let muted = false;
 
-try { hi = parseInt(localStorage.getItem('bitrunner-hi') || '0', 10) || 0; } catch (e) { /* storage unavailable */ }
-function saveHi() { try { localStorage.setItem('bitrunner-hi', String(hi)); } catch (e) { /* ignore */ } }
+const HI_KEY = 'bitrunner-hiscore';
+try { hi = parseInt(localStorage.getItem(HI_KEY) || '0', 10) || 0; } catch (e) { /* storage unavailable */ }
+function saveHi() { try { localStorage.setItem(HI_KEY, String(hi)); } catch (e) { /* ignore */ } }
 
 // ---------- sound ----------
 let ac = null;
@@ -554,6 +577,8 @@ const sfx = {
   warp: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', null, 0.045, i * 0.07)),
   die: () => { tone(300, 0.35, 'sawtooth', 60, 0.07); tone(140, 0.4, 'square', 40, 0.05, 0.05); },
   blip: () => tone(1600, 0.04, 'square', 400, 0.03),
+  chip: () => { tone(1200, 0.05, 'square', null, 0.03); tone(1800, 0.06, 'square', null, 0.03, 0.04); },
+  gold: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.1, 'square', null, 0.045, i * 0.05)),
   boom: () => tone(160, 0.2, 'sawtooth', 50, 0.05),
 };
 
@@ -561,8 +586,13 @@ const sfx = {
 const DEF = {
   pylon: { w: 7, h: 10 }, block: { w: 10, h: 16 }, crate: { w: 12, h: 12 }, crate2: { w: 12, h: 23 },
   pipe: { w: 8, h: 24 }, rock: { w: 10, h: 7 }, glitch: { w: 10, h: 10 }, laser: { w: 5, h: 26 },
-  drone: { w: 12, h: 7 },
+  drone: { w: 12, h: 7 }, chip: { w: 5, h: 5 },
 };
+// drone heights: LOW = jump over it, HIGH = stay on the floor and let it pass
+const DRONE_LOW = 10, DRONE_HIGH = 26;
+// height of the upper route: a tap jump can't reach it, a held jump can
+const upY = (st) => GROUND - (STAGES[st].grav < 1 ? 64 : 40);
+const GATE_L = 560;
 function add(type, x, extra = {}) {
   const d = DEF[type] || { w: 0, h: 0 };
   const o = Object.assign({ type, x, w: d.w, h: d.h, y: GROUND - d.h, vx: 0, t: 0 }, extra);
@@ -575,15 +605,12 @@ function pick(table) {
   for (const [k, w] of table) { if ((r -= w) <= 0) return k; }
   return table[0][0];
 }
-function spawn(stIdx) {
-  const x = W + 8;
-  const type = pick(STAGES[stIdx].table);
+function spawnType(type, x, base = GROUND) {
   let extraW = 0;
   switch (type) {
-    case 'pylon2': add('pylon', x); add('pylon', x + 9); extraW = 9; break;
+    case 'pylon2': add('pylon', x, { y: base - 10 }); add('pylon', x + 9, { y: base - 10 }); extraW = 9; break;
     case 'drone': case 'car': {
-      const lv = Math.random();
-      const y = lv < 0.35 ? GROUND - 10 : lv < 0.8 ? GROUND - 18 : GROUND - 40;
+      const y = base - (Math.random() < 0.5 ? DRONE_LOW : DRONE_HIGH);
       add('drone', x, { y, vx: type === 'car' ? -45 : 0 });
       break;
     }
@@ -601,15 +628,65 @@ function spawn(stIdx) {
       break;
     }
     case 'glitch': {
-      const up = Math.random() < 0.6;
-      const yG = GROUND - 10, yA = GROUND - 22;
-      add('glitch', x, { y: up ? yG : yA, ty: up ? yA : yG, tx: rand(110, 175), done: false });
+      // ground cube = jump it, floating cube = pass under it; it swaps once, the ghost shows where
+      const toAir = Math.random() < 0.5;
+      const yG = GROUND - 10, yA = GROUND - 27;
+      add('glitch', x, { y: toAir ? yG : yA, ty: toAir ? yA : yG, tx: rand(120, 175), done: false });
       break;
     }
-    default: add(type, x);
+    default: {
+      const d = DEF[type];
+      add(type, x, { y: base - d.h });
+    }
   }
-  const gap = spd * rand(0.75, 1.35) + 50 + extraW;
-  nextSpawn = distPx + gap;
+  return extraW;
+}
+function spawn(stIdx) {
+  const x = W + 8;
+  const type = pick(STAGES[stIdx].table);
+  const extraW = spawnType(type, x);
+  if (Math.random() < 0.3 && type !== 'meteor') {
+    for (let i = 0; i < 3; i++) add('chip', x + i * 7 - 4, { y: GROUND - 36 - (i === 1 ? 4 : 0) });
+  }
+  nextSpawn = distPx + spd * rand(0.75, 1.35) + 50 + extraW;
+}
+// A fork: floating catwalks above (chips, broken footing) and a busier floor below.
+function spawnFork(x0, L, st, gate, nextSt) {
+  const up = upY(st);
+  add('sign', x0 - 34, { w: 12, h: 24, y: GROUND - 24, gate });
+  let x = x0, first = true;
+  while (x < x0 + L - 20) {
+    let w = Math.round(rand(70, 120));
+    if (gate && x + w + 60 > x0 + L) w = x0 + L - x + 30;
+    add('plat', x, { y: up, w, h: 4 });
+    for (let cx = x + 8; cx < x + w - 6; cx += 12) add('chip', cx, { y: up - 12 });
+    if (!first && w > 80 && Math.random() < 0.55) {
+      const ox = x + Math.round(w * 0.55);
+      if (Math.random() < 0.5) add('pylon', ox, { y: up - 10 });
+      else add('drone', ox, { y: up - DRONE_HIGH });
+    }
+    first = false;
+    const gw = Math.round(rand(26, 26 + spd * 0.12));
+    if (x + w < x0 + L - 20) for (let i = 0; i < 3; i++) add('chip', x + w + gw / 2 - 8 + i * 6, { y: up - 18 - (i === 1 ? 4 : 0) });
+    x += w + gw;
+  }
+  // lower route: denser, only obstacles a tap jump (or standing still) can handle
+  const low = STAGES[st].table.filter(([k]) => ['pylon', 'pylon2', 'block', 'crate', 'rock', 'glitch', 'drone', 'car', 'gap'].includes(k));
+  const tbl = low.length ? low : [['pylon', 1]];
+  let lx = x0 + 50;
+  while (lx < x0 + L - 60) {
+    const t = pick(tbl);
+    lx += spawnType(t, lx) + spd * rand(0.6, 0.85) + 40;
+  }
+  if (gate) {
+    add('gate', x0 + L - 8, { y: up - 22, w: 16, h: 22, gold: true });
+    add('gate', x0 + L - 8, { y: GROUND - 22, w: 16, h: 22, to: nextSt });
+    pendingGate = { up };
+  }
+  lastFork = distPx + (x0 - PX) + L;
+  if (gate) showHint('分かれ道の先にゲート。<br>上の金ゲート＝倍率 +0.5・次のワールドが加速／下のゲート＝そのまま');
+  else if (!forkHintShown) showHint('分かれ道。長押しジャンプで上ルートへ<br>上はチップが多いが、足場が途切れる');
+  forkHintShown = true;
 }
 function hitbox(o) {
   switch (o.type) {
@@ -617,14 +694,14 @@ function hitbox(o) {
     case 'laser': return laserOn(o) ? { x: o.x + 1, y: GROUND - 26, w: 3, h: 26 } : null;
     case 'pylon': return { x: o.x + 1, y: o.y + 2, w: 5, h: 8 };
     case 'meteor': return { x: o.x, y: o.y, w: 6, h: 6 };
-    case 'gap': return null;
+    case 'gap': case 'plat': case 'chip': case 'sign': case 'gate': return null;
     default: return { x: o.x + 1, y: o.y + 1, w: o.w - 2, h: o.h - 1 };
   }
 }
 const laserOn = (o) => ((time + o.ph) % 1.5) < 0.8;
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 function pbox() {
-  return p.duck ? { x: PX + 2, y: p.y - 8, w: 11, h: 7 } : { x: PX + 3, y: p.y - 14, w: 8, h: 13 };
+  return { x: PX + 3, y: p.y - 14, w: 8, h: 13 };
 }
 function overGap() {
   return obs.some((o) => o.type === 'gap' && PX + 4 >= o.x && PX + 10 <= o.x + o.w);
@@ -637,9 +714,11 @@ function burst(x, y, n, color, spread = 60) {
 
 // ---------- flow ----------
 function reset() {
-  distPx = 0; spd = 110; obs = []; parts = []; nextSpawn = 200; gateFor = -1; lastMilestone = 0;
+  distPx = 0; spd = 110; obs = []; parts = []; nextSpawn = 200; lastMilestone = 0;
+  score = 0; mult = 1; hard = 0; forkFor = -1; lastFork = 0; pendingGate = null; forkHintShown = false;
+  $('hint').hidden = true;
   cur = { i: 0, loop: 0 }; bestStage = 0; trans = null; shake = 0; flash = 0;
-  Object.assign(p, { y: GROUND, vy: 0, onG: true, duck: false, hold: 0, coyote: 0, fall: false, anim: 0, dead: false });
+  Object.assign(p, { y: GROUND, vy: 0, onG: true, hold: 0, coyote: 0, fall: false, anim: 0, dead: false });
   setPal(STAGES[0].rgb);
   updateRoute();
 }
@@ -659,24 +738,30 @@ function die() {
 }
 function gameOver() {
   state = 'over'; overT = 0;
-  const m = Math.floor(distPx / 10);
-  const isNew = m > hi;
-  if (isNew) { hi = m; saveHi(); }
+  const m = Math.floor(distPx / 10), sc = Math.floor(score);
+  const isNew = sc > hi;
+  if (isNew) { hi = sc; saveHi(); }
+  $('ovScore').textContent = String(sc);
   $('ovDist').textContent = m + 'm';
   $('ovStage').textContent = String(cur.i + 1).padStart(2, '0') + ' ' + STAGES[cur.i].id + (cur.loop ? ` ×${cur.loop + 1}` : '');
-  $('ovBest').textContent = hi + 'm';
+  $('ovBest').textContent = String(hi);
   $('ovNew').hidden = !isNew;
   $('scOver').hidden = false;
 }
 function setPause(on) {
-  if (on && state === 'play') { state = 'pause'; $('scPause').hidden = false; }
+  if (on && state === 'play') { state = 'pause'; $('scPause').hidden = false; input.jump = false; }
   else if (!on && state === 'pause') { state = 'play'; $('scPause').hidden = true; }
 }
-function showBanner(i, loop) {
+function showHint(html) {
+  const h = $('hint');
+  h.innerHTML = html;
+  h.hidden = true; void h.offsetWidth; h.hidden = false;
+}
+function showBanner(i, loop, tookGold) {
   const s = STAGES[i];
   $('bnNo').textContent = 'STAGE ' + String(i + 1).padStart(2, '0') + (loop ? `  LOOP ${loop + 1}` : '');
   $('bnName').textContent = s.id;
-  $('bnJp').textContent = s.jp;
+  $('bnJp').textContent = tookGold ? `金ゲート通過　倍率 ×${mult.toFixed(1)}・加速` : s.jp;
   $('bnRule').textContent = s.rule;
   const b = $('banner');
   b.hidden = true; void b.offsetWidth; b.hidden = false;
@@ -687,8 +772,15 @@ function beginStage(si) {
   trans = { from: cur.i, to: si.i, t: 0 };
   cur = { i: si.i, loop: si.loop };
   bestStage = Math.max(bestStage, si.i);
-  flash = 1; shake = 3; sfx.warp();
-  showBanner(si.i, si.loop);
+  let gold = false;
+  if (pendingGate) {
+    gold = !p.fall && p.y <= pendingGate.up + 2;
+    if (gold) { mult += 0.5; hard++; }
+    pendingGate = null;
+  }
+  flash = 1; shake = 3;
+  if (gold) sfx.gold(); else sfx.warp();
+  showBanner(si.i, si.loop, gold);
   updateRoute();
 }
 
@@ -708,8 +800,9 @@ function update(dt) {
   }
 
   const m = distPx / 10;
-  spd = Math.min(290, 110 + m * 0.1);
+  spd = Math.min(290, 110 + m * 0.1) + hard * 15;
   distPx += spd * dt;
+  score += (spd * dt / 10) * mult;
 
   // stage tracking
   const si = stageAt(distPx / 10);
@@ -727,16 +820,20 @@ function update(dt) {
 
   // spawning (decide by the stage at the arrival point)
   const aheadPx = W + 8 - PX;
-  const arrive = stageAt((distPx + aheadPx) / 10);
-  const bEnd = arrive.end * 10, bStart = arrive.start * 10;
-  if (gateFor !== arrive.start && arrive.start > 0 && distPx + aheadPx >= bStart) {
-    gateFor = arrive.start;
-    obs.push({ type: 'gate', x: PX + (bStart - distPx), y: GROUND - 46, w: 14, h: 46, vx: 0, t: 0, to: arrive.i });
-  }
-  if (distPx >= nextSpawn) {
-    const a = distPx + aheadPx;
-    if (a > bEnd - 150 || a < bStart + 90) nextSpawn = distPx + 20;
-    else spawn(arrive.i);
+  const a = distPx + aheadPx;
+  const arrive = stageAt(a / 10);
+  const bEnd = arrive.end * 10;
+  if (forkFor !== arrive.end && a >= bEnd - GATE_L) {
+    forkFor = arrive.end;
+    spawnFork(W + 8, bEnd - a, arrive.i, true, stageAt(arrive.end).i);
+    nextSpawn = distPx + (bEnd - a) + 110;
+  } else if (distPx >= nextSpawn) {
+    if (a > bEnd - GATE_L - 90) nextSpawn = distPx + 20;
+    else if (arrive.i > 0 && a - lastFork > 1400 && a + 900 < bEnd - GATE_L && Math.random() < 0.3) {
+      const L = Math.round(rand(520, 800));
+      spawnFork(W + 8, L, arrive.i, false);
+      nextSpawn = distPx + L + 90;
+    } else spawn(arrive.i);
   }
 
   // player
@@ -748,25 +845,25 @@ function update(dt) {
       sfx.jump();
     }
     let gv = grav;
-    if (!p.onG) {
-      if (input.jump && p.vy < 0 && p.hold < 0.2) { gv = grav * 0.45; p.hold += dt; }
-      if (input.down) gv = grav * 3;
-    }
+    if (!p.onG && input.jump && p.vy < 0 && p.hold < 0.2) { gv = grav * 0.45; p.hold += dt; }
+    const prevY = p.y, wasOnG = p.onG;
     p.vy += gv * dt; p.y += p.vy * dt;
-    const gap = overGap();
-    if (p.y >= GROUND) {
-      if (!gap) {
-        if (!p.onG) burst(PX + 7, GROUND, 4, css(pal.floorHi), 30);
-        p.y = GROUND; p.vy = 0; p.onG = true; p.coyote = 0.08;
-      } else {
-        p.onG = false;
-        if (p.y > GROUND + 4) p.fall = true;
+    // land on the highest surface we crossed this frame (catwalks are one-way from below)
+    let land = null;
+    if (p.vy >= 0) {
+      for (const o of obs) {
+        if (o.type === 'plat' && PX + 11 > o.x && PX + 3 < o.x + o.w && prevY <= o.y + 0.5 && p.y >= o.y) land = land === null ? o.y : Math.min(land, o.y);
       }
-    } else if (p.onG && p.y < GROUND) {
+      if (!overGap() && prevY <= GROUND + 0.5 && p.y >= GROUND) land = land === null ? GROUND : Math.min(land, GROUND);
+    }
+    if (land !== null) {
+      if (!wasOnG) burst(PX + 7, land, 4, css(pal.floorHi), 30);
+      p.y = land; p.vy = 0; p.onG = true; p.coyote = 0.08;
+    } else {
       p.onG = false;
+      if (overGap() && p.y > GROUND + 4) p.fall = true;
     }
     if (!p.onG) p.coyote -= dt;
-    p.duck = input.down && p.onG;
   } else {
     p.vy += grav * dt; p.y += p.vy * dt;
     if (p.y > GROUND + 22) die();
@@ -790,10 +887,15 @@ function update(dt) {
       burst(o.x + 5, o.y + 5, 8, css(pal.obsHi), 40); sfx.blip();
     }
     if (p.fall) continue;
+    if (o.type === 'chip' && !o.got && overlap(pb, { x: o.x - 1, y: o.y - 1, w: 7, h: 7 })) {
+      o.got = true; score += 10 * mult; sfx.chip();
+      burst(o.x + 2, o.y + 2, 4, css(pal.chip), 30);
+      continue;
+    }
     const hb = hitbox(o);
     if (hb && overlap(pb, hb)) { die(); break; }
   }
-  obs = obs.filter((o) => o.x + o.w > -30);
+  obs = obs.filter((o) => o.x + o.w > -30 && !o.got);
   updateParts(dt);
   shake = Math.max(0, shake - dt * 20);
   flash = Math.max(0, flash - dt * 3);
@@ -892,19 +994,42 @@ function drawObstacle(o) {
       for (let i = 0; i < 4; i++) g.fillRect(x + 3 + ((i * 7) % Math.max(1, o.w - 6)), GROUND + 6 + i * 5, 1, 1);
       break;
     }
+    case 'plat': {
+      g.fillStyle = css(pal.obsHi, 0.25);
+      for (let sx = x + 6; sx < x + o.w - 4; sx += 30) g.fillRect(sx, y + 4, 1, GROUND - y - 4);
+      rim(x, y, o.w, 4);
+      g.fillStyle = hi;
+      for (let sx = x + 2; sx < x + o.w - 2; sx += 4) g.fillRect(sx, y + 2, 2, 1);
+      break;
+    }
+    case 'chip': {
+      const bob = Math.round(Math.sin(time * 6 + o.x * 0.1));
+      g.fillStyle = css(pal.chip);
+      g.fillRect(x + 2, y + bob, 1, 5); g.fillRect(x + 1, y + 1 + bob, 3, 3); g.fillRect(x, y + 2 + bob, 5, 1);
+      g.fillStyle = css(pal.body); g.fillRect(x + 2, y + 1 + bob, 1, 1);
+      break;
+    }
+    case 'sign': {
+      g.fillStyle = hi; g.fillRect(x + 5, y, 2, o.h);
+      // upper plate: gold arrow pointing up-right
+      g.fillStyle = '#ffd23f'; g.fillRect(x, y, 12, 7);
+      g.fillStyle = ink; g.fillRect(x + 4, y + 2, 1, 4); g.fillRect(x + 4, y + 2, 4, 1); g.fillRect(x + 5, y + 3, 1, 1); g.fillRect(x + 6, y + 4, 1, 1);
+      // lower plate: plain arrow pointing right
+      g.fillStyle = hi; g.fillRect(x, y + 10, 12, 7);
+      g.fillStyle = ob; g.fillRect(x + 2, y + 13, 7, 1); g.fillRect(x + 7, y + 12, 1, 3); g.fillRect(x + 8, y + 13, 1, 1);
+      break;
+    }
     case 'gate': {
-      const c = STAGES[o.to].pal.visor;
+      const c = o.gold ? '#ffd23f' : STAGES[o.to].pal.visor;
+      g.fillStyle = css(hex(c), 0.22 + 0.12 * Math.sin(time * 10));
+      g.fillRect(x + 3, y + 3, o.w - 6, o.h - 3);
       g.fillStyle = c;
-      for (let r = 0; r < o.h; r++) {
-        const t = r / (o.h - 1) * 2 - 1;
-        const w = Math.round(Math.sqrt(1 - t * t) * 7);
-        g.fillRect(x + 7 - w, y + r, 1, 1); g.fillRect(x + 7 + w, y + r, 1, 1);
-      }
-      g.fillStyle = css(hex(c), 0.25 + 0.15 * Math.sin(time * 12));
-      for (let r = 2; r < o.h - 2; r += 2) {
-        const t = r / (o.h - 1) * 2 - 1;
-        const w = Math.round(Math.sqrt(1 - t * t) * 7) - 1;
-        g.fillRect(x + 7 - w, y + r, w * 2 + 1, 1);
+      g.fillRect(x, y + 2, 3, o.h - 2); g.fillRect(x + o.w - 3, y + 2, 3, o.h - 2);
+      g.fillRect(x + 1, y, o.w - 2, 3);
+      if (o.gold) {
+        // star on the lintel
+        g.fillStyle = '#fff6c8';
+        g.fillRect(x + 7, y - 5, 2, 5); g.fillRect(x + 5, y - 3, 6, 1);
       }
       break;
     }
@@ -917,7 +1042,6 @@ function drawPlayer() {
   let rows;
   if (p.dead) rows = SPR.jump;
   else if (state === 'title') rows = SPR.runA;
-  else if (p.duck) rows = SPR.duck;
   else if (!p.onG) rows = SPR.jump;
   else rows = Math.floor(p.anim) % 2 ? SPR.runA : SPR.runB;
   spr(rows, PX, p.y - 16, cmap, p.dead && !p.fall);
@@ -939,8 +1063,9 @@ function draw() {
     BG[STAGES[cur.i].bg](STAGES[cur.i].pal, d);
   }
   drawFloor(STAGES[cur.i].id, d);
-  for (const o of obs) if (o.type === 'gap' || o.type === 'gate') drawObstacle(o);
-  for (const o of obs) if (o.type !== 'gap' && o.type !== 'gate') drawObstacle(o);
+  const BACK = ['gap', 'plat', 'sign', 'gate'];
+  for (const o of obs) if (BACK.includes(o.type)) drawObstacle(o);
+  for (const o of obs) if (!BACK.includes(o.type)) drawObstacle(o);
   if (state !== 'over' || p.y < H + 20) drawPlayer();
   for (const q of parts) { g.fillStyle = q.c; g.fillRect(q.x | 0, q.y | 0, 1, 1); }
 
@@ -957,8 +1082,8 @@ function draw() {
 let hudCache = {};
 function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
 function hud() {
-  const m = Math.floor(distPx / 10);
-  setText('scTxt', String(m).padStart(5, '0'));
+  setText('scTxt', String(Math.floor(score)).padStart(5, '0'));
+  setText('multTxt', '×' + mult.toFixed(1));
   setText('hiTxt', 'HI ' + String(hi).padStart(5, '0'));
   const si = stageAt(distPx / 10);
   setText('stName', 'STAGE ' + String(cur.i + 1).padStart(2, '0') + ' ' + STAGES[cur.i].id + (cur.loop ? ` ×${cur.loop + 1}` : ''));
@@ -966,7 +1091,12 @@ function hud() {
   const w = Math.round(pr * 100) + '%';
   if (hudCache.prog !== w) { hudCache.prog = w; $('prog').style.width = w; }
   const hc = css(pal.hud);
-  if (hudCache.hc !== hc) { hudCache.hc = hc; $('stage').style.setProperty('--hud', hc); $('stage').style.background = css(pal.skyT); }
+  if (hudCache.hc !== hc) {
+    hudCache.hc = hc;
+    $('stage').style.setProperty('--hud', hc);
+    $('stage').style.setProperty('--hudbg', css(pal.floor, 0.85));
+    $('stage').style.background = css(pal.skyT);
+  }
 }
 
 // ---------- route list ----------
@@ -986,35 +1116,33 @@ function updateRoute() {
 }
 
 // ---------- input ----------
-const JUMP_KEYS = ['Space', 'ArrowUp', 'KeyW'];
-const DOWN_KEYS = ['ArrowDown', 'KeyS'];
+// Everything works with one mouse button: press = jump, hold = higher jump.
 function pressJump() {
   if (state === 'title') { start(); return; }
   if (state === 'over') { if (overT > 0.4) start(); return; }
   if (state === 'pause') { setPause(false); return; }
   input.jump = true; input.jumpBuf = 0.12;
 }
-window.addEventListener('keydown', (e) => {
-  if (JUMP_KEYS.includes(e.code) || e.code === 'Enter') {
-    e.preventDefault();
-    if (e.repeat) return;
-    pressJump();
-  } else if (DOWN_KEYS.includes(e.code)) {
-    e.preventDefault(); input.down = true;
-  } else if (e.code === 'KeyP' || e.code === 'Escape') {
-    setPause(state === 'play');
-  } else if (e.code === 'KeyM') {
-    muted = !muted; $('muteTxt').textContent = muted ? 'サウンド OFF' : 'サウンド ON';
-  }
-});
-window.addEventListener('keyup', (e) => {
-  if (JUMP_KEYS.includes(e.code) || e.code === 'Enter') input.jump = false;
-  if (DOWN_KEYS.includes(e.code)) input.down = false;
-});
+function releaseJump() { input.jump = false; }
 const stageEl = $('stage');
-stageEl.addEventListener('pointerdown', (e) => { e.preventDefault(); stageEl.focus(); pressJump(); });
-window.addEventListener('pointerup', () => { input.jump = false; });
-window.addEventListener('blur', () => { input.jump = false; input.down = false; setPause(true); });
+stageEl.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest('button')) return;
+  e.preventDefault(); stageEl.focus(); pressJump();
+});
+window.addEventListener('pointerup', releaseJump);
+stageEl.addEventListener('contextmenu', (e) => e.preventDefault());
+$('btnPause').addEventListener('click', () => { if (state === 'play') setPause(true); else if (state === 'pause') setPause(false); });
+$('btnMute').addEventListener('click', () => { muted = !muted; $('btnMute').textContent = muted ? 'SOUND OFF' : 'SOUND ON'; });
+// keyboard is an optional alias
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') {
+    if (e.target.closest && e.target.closest('button')) return;
+    e.preventDefault();
+    if (!e.repeat) pressJump();
+  } else if (e.code === 'KeyP' || e.code === 'Escape') setPause(state === 'play');
+});
+window.addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') releaseJump(); });
+window.addEventListener('blur', () => { input.jump = false; setPause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPause(true); });
 
 // ---------- network flavour ----------
