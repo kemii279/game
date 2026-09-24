@@ -14,8 +14,13 @@
     --text: #e8e0b8;
     --muted: #8f8766;
     --rec: #ff3b2f;
+    --sleep: #b7a4e0;
+    --sane: #e8d27a;
+    --paper: #e4dcc4;
+    --ink: #2a2418;
     --pixel: "DotGothic16", "Osaka-mono", "MS Gothic", ui-monospace, monospace;
     --s: 3;
+    --u: max(1px, calc(var(--s) * 1px));
   }
   [hidden] { display: none !important; }
   html, body { height: 100%; margin: 0; }
@@ -32,107 +37,170 @@
     position: absolute; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
     width: 960px; height: 540px;
+    overflow: hidden;
   }
-  canvas {
-    display: block; width: 100%; height: 100%;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    cursor: none;
-  }
-  /* ブラウン管のような走査線。1ドットに1本 */
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  #view { display: block; width: 100%; height: 100%; cursor: none; }
   .scan {
     position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(to bottom,
-      rgba(0,0,0,0) 0, rgba(0,0,0,0) calc(var(--s) * 1px - 1px),
-      rgba(0,0,0,.13) calc(var(--s) * 1px - 1px), rgba(0,0,0,.13) calc(var(--s) * 1px));
+      rgba(0,0,0,0) 0, rgba(0,0,0,0) calc(var(--u) - 1px),
+      rgba(0,0,0,.13) calc(var(--u) - 1px), rgba(0,0,0,.13) var(--u));
     mix-blend-mode: multiply;
   }
+  .pain, .white { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+  .pain { background: radial-gradient(ellipse at center, rgba(120,0,0,0) 30%, rgba(150,10,10,.75) 100%); }
+  .white { background: #fffbe8; transition: opacity 2.6s ease-in; }
+
   .hud {
     position: absolute; inset: 0; pointer-events: none;
-    font-size: calc(var(--s) * 7px);
-    line-height: 1.25;
+    font-size: max(10px, calc(var(--s) * 6.5px));
+    line-height: 1.3;
     color: var(--text);
-    text-shadow: calc(var(--s) * .5px) 0 rgba(255, 40, 60, .35), calc(var(--s) * -.5px) 0 rgba(40, 200, 255, .3);
-    letter-spacing: .08em;
+    text-shadow: calc(var(--u) * .5) 0 rgba(255, 40, 60, .35), calc(var(--u) * -.5) 0 rgba(40, 200, 255, .3);
+    letter-spacing: .06em;
     font-variant-numeric: tabular-nums;
   }
   .hud > div { position: absolute; }
-  .tl { left: calc(var(--s) * 8px); top: calc(var(--s) * 6px); }
-  .tr { right: calc(var(--s) * 8px); top: calc(var(--s) * 6px); text-align: right; }
-  .bl { left: calc(var(--s) * 8px); bottom: calc(var(--s) * 6px); }
-  .br { right: calc(var(--s) * 8px); bottom: calc(var(--s) * 6px); text-align: right; }
+  .tl { left: calc(var(--u) * 7); top: calc(var(--u) * 5); }
+  .tr { right: calc(var(--u) * 7); top: calc(var(--u) * 5); display: grid; justify-items: end; gap: calc(var(--u) * 2); }
+  .bl { left: calc(var(--u) * 7); bottom: calc(var(--u) * 5); display: grid; gap: calc(var(--u) * 2); }
+  .br { right: calc(var(--u) * 7); bottom: calc(var(--u) * 5); }
+  .tc { left: 0; right: 0; top: calc(var(--u) * 5); text-align: center; opacity: 0; transition: opacity .4s; }
   .rec i { font-style: normal; color: var(--rec); animation: blink 1.2s steps(1) infinite; }
   .dim { opacity: .7; }
   @keyframes blink { 50% { visibility: hidden; } }
-  .msg {
-    left: 0; right: 0; bottom: calc(var(--s) * 26px);
-    text-align: center; font-size: calc(var(--s) * 8px);
-    opacity: 0; transition: opacity 1.6s steps(8);
+
+  .anchors { display: flex; gap: calc(var(--u) * 2); }
+  .anchors canvas { width: calc(var(--u) * 13); height: calc(var(--u) * 13); background: rgba(0,0,0,.35); outline: var(--u) solid rgba(232,224,184,.18); }
+  .anchors canvas.got { outline-color: rgba(255,244,176,.7); background: rgba(40,30,0,.5); }
+  .anchors-label { font-size: max(9px, calc(var(--s) * 5px)); opacity: .75; }
+
+  .meter { display: flex; align-items: center; gap: calc(var(--u) * 3); }
+  .meter span { width: 2.4em; }
+  .meter b { display: block; width: calc(var(--u) * 56); height: calc(var(--u) * 4); background: rgba(0,0,0,.45); outline: var(--u) solid rgba(232,224,184,.25); }
+  .meter i { display: block; height: 100%; width: 0; }
+  #sleepBar { background: var(--sleep); }
+  #sanBar { background: var(--sane); }
+  .meter.warn b { animation: blink .5s steps(1) infinite; }
+  .zone { opacity: .75; font-size: max(9px, calc(var(--s) * 5.5px)); }
+
+  .inv { display: flex; gap: calc(var(--u) * 2); pointer-events: auto; }
+  .inv button {
+    font: inherit; font-size: max(9px, calc(var(--s) * 5px)); color: var(--text);
+    display: grid; justify-items: center; gap: calc(var(--u) * 1);
+    min-width: calc(var(--u) * 22);
+    padding: calc(var(--u) * 2); margin: 0;
+    background: rgba(0,0,0,.45); border: var(--u) solid rgba(232,224,184,.22);
+    cursor: pointer; text-shadow: inherit;
   }
-  .msg.on { opacity: .92; }
+  .inv button:disabled { opacity: .35; cursor: default; }
+  .inv button.on { border-color: #ffd080; }
+  .inv button:focus-visible { outline: 2px solid var(--sane); }
+  .inv canvas { width: calc(var(--u) * 14); height: calc(var(--u) * 14); }
+  .inv kbd { font: inherit; opacity: .6; }
+  .bat { width: calc(var(--u) * 14); height: calc(var(--u) * 2); background: rgba(255,255,255,.15); }
+  .bat i { display: block; height: 100%; background: #ffd080; width: 0; }
+
+  .msg {
+    left: 8%; right: 8%; bottom: calc(var(--u) * 46);
+    text-align: center; font-size: max(11px, calc(var(--s) * 7px));
+    opacity: 0; transition: opacity 1.2s steps(6);
+    white-space: pre-line;
+  }
+  .msg.on { opacity: .95; }
+  .note {
+    left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-1.2deg);
+    width: min(78%, calc(var(--u) * 190));
+    box-sizing: border-box;
+    padding: calc(var(--u) * 8) calc(var(--u) * 10);
+    background: var(--paper); color: var(--ink);
+    text-shadow: none;
+    box-shadow: calc(var(--u) * 3) calc(var(--u) * 3) 0 rgba(0,0,0,.5);
+    font-size: max(12px, calc(var(--s) * 7px)); line-height: 1.7;
+  }
+  .note small { display: block; opacity: .6; font-size: .75em; margin-bottom: .4em; letter-spacing: .2em; }
+  .note p { margin: 0; white-space: pre-line; }
+  .note.mad p { color: #5a1410; letter-spacing: .2em; }
 
   .overlay {
     position: absolute; inset: 0;
     display: grid; place-content: center; justify-items: center;
-    gap: calc(var(--s) * 5px);
+    gap: calc(var(--u) * 4);
     padding: 16px; box-sizing: border-box;
     text-align: center;
-    background: rgba(5, 5, 3, .78);
+    background: rgba(5, 5, 3, .8);
     cursor: pointer;
   }
   .overlay h1 {
     margin: 0; font-weight: 400;
-    font-size: calc(var(--s) * 22px); letter-spacing: .3em; line-height: 1;
-    text-shadow: calc(var(--s) * 1px) 0 rgba(255,40,60,.45), calc(var(--s) * -1px) 0 rgba(40,200,255,.4);
+    font-size: max(36px, calc(var(--s) * 22px)); letter-spacing: .3em; line-height: 1;
+    text-shadow: calc(var(--u) * 1) 0 rgba(255,40,60,.45), calc(var(--u) * -1) 0 rgba(40,200,255,.4);
   }
-  .overlay .sub { margin: 0; color: var(--muted); font-size: calc(var(--s) * 7px); letter-spacing: .4em; }
-  .overlay .go { margin: calc(var(--s) * 6px) 0 0; font-size: calc(var(--s) * 9px); animation: blink 1.4s steps(1) infinite; }
-  .overlay .keys { margin: 0; color: var(--muted); font-size: calc(var(--s) * 6px); line-height: 1.7; }
-  @media (max-width: 520px) {
-    .overlay .keys { font-size: 12px; }
-    .overlay .sub { font-size: 12px; }
-  }
+  .overlay .sub { margin: 0; color: var(--muted); font-size: max(10px, calc(var(--s) * 6px)); letter-spacing: .4em; }
+  .overlay .lore { margin: calc(var(--u) * 3) 0 0; max-width: 36em; font-size: max(11px, calc(var(--s) * 6.5px)); line-height: 1.8; }
+  .overlay .lore em { font-style: normal; color: #ffd080; }
+  .overlay .go { margin: calc(var(--u) * 4) 0 0; font-size: max(13px, calc(var(--s) * 8px)); animation: blink 1.4s steps(1) infinite; }
+  .overlay .keys { margin: 0; color: var(--muted); font-size: max(10px, calc(var(--s) * 5.5px)); line-height: 1.8; }
+  .overlay .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: .6em 2em; font-size: max(11px, calc(var(--s) * 6.5px)); }
+  .overlay .stats span { display: grid; }
+  .overlay .stats small { color: var(--muted); font-size: .8em; }
+  .overlay.end-assim { background: rgba(20, 14, 30, .88); }
+  .overlay.end-wake { background: rgba(255, 251, 232, .92); color: #2a2418; }
+  .overlay.end-wake h1 { text-shadow: none; }
+  .overlay.end-wake .sub, .overlay.end-wake .stats small { color: #7a6a48; }
 </style>
 </head>
 <body>
 <div class="screen" id="screen">
   <canvas id="view" width="320" height="180" aria-label="リミナルスペース"></canvas>
   <div class="scan"></div>
+  <div class="pain" id="pain"></div>
   <div class="hud" id="hud" hidden>
-    <div class="tl rec"><i>●</i> REC</div>
-    <div class="tr"><span id="clock">AM 3:14:00</span><br><span class="dim">JUN.21 1998</span></div>
-    <div class="bl"><span id="zone">B0 黄色い部屋</span></div>
-    <div class="br dim"><span id="dist">0</span>m</div>
+    <div class="tl"><div class="rec"><i>●</i> REC</div><div class="dim" id="clock">AM 3:14:00</div></div>
+    <div class="tr"><div class="anchors" id="anchors"></div><div class="anchors-label" id="anchorsLabel">異物 0 / 7</div></div>
+    <div class="tc" id="sense">気配</div>
+    <div class="bl">
+      <div class="meter" id="sleepM"><span>眠気</span><b><i id="sleepBar"></i></b></div>
+      <div class="meter" id="sanM"><span>正気</span><b><i id="sanBar"></i></b></div>
+      <div class="zone"><span id="zone">B0 黄色い部屋</span>　<span id="dist">0</span>m</div>
+    </div>
+    <div class="br inv" id="inv"></div>
     <div class="msg" id="msg"></div>
+    <div class="note" id="note" hidden><small id="noteNo">メモ</small><p id="noteText"></p></div>
   </div>
+  <div class="white" id="white"></div>
   <div class="overlay" id="overlay">
-    <h1>ハザマ</h1>
-    <p class="sub">LIMINAL SPACE</p>
+    <h1 id="ovTitle">ハザマ</h1>
+    <p class="sub" id="ovSub">LIMINAL SPACE</p>
+    <p class="lore" id="ovLore">眠りと目覚めのあいだに、ハザマがある。<br>ここでは何も食べなくていい。ただ、ひどく眠い。<br>眠りきったとき、あなたはこの部屋の一部になる。<br>現実から紛れこんだ<em>色のある異物</em>を七つ集めて、目を覚ませ。</p>
     <p class="go" id="go">クリックして入る</p>
-    <p class="keys" id="keys">WASD・矢印キー：歩く　マウス：見回す　Shift：走る　Esc：離れる<br>スマホ：押しているあいだ前へ歩く・左右になぞって向きを変える<br>ヘッドホン推奨</p>
+    <p class="keys" id="keys">WASD・矢印：歩く　マウス：見回す　Shift：走る　F：ライト<br>1：缶コーヒー　2：ミントガム　3：目薬　Q：つねる　E：メモを閉じる<br>ヘッドホン推奨</p>
   </div>
 </div>
 <script>
 "use strict";
 // ============================================================
 //  ハザマ — ドット絵のリミナルスペース
-//  320x180 のレイキャスターで、無限に続く部屋を描く
+//  320x180 のレイキャスター。眠気に呑まれる前に、異物を七つ集めて目を覚ます
 // ============================================================
 
 const W = 320, H = 180;
-const PL = 0.72;                 // カメラ平面（視野角 約72度）
-const PROJ = (W / 2) / PL;       // 1ユニット先の1ユニットが何pxになるか
-const T = 32;                    // テクスチャの一辺
-const P = 6;                     // 部屋の間隔（セル）
-const R = 26;                    // 毎フレーム扱う範囲（半径）
+const PL = 0.72;
+const PROJ = (W / 2) / PL;
+const T = 32;
+const P = 6;
+const R = 26;
 const G = R * 2 + 1, G1 = G + 1;
-const MAXD = 20;                 // この距離で完全に闇になる
+const MAXD = 20;
 const SEED = (() => { const m = /seed=(\d+)/.exec(location.search); return m ? +m[1] : 1998; })();
 
 const cvs = document.getElementById("view");
 const ctx = cvs.getContext("2d");
 const img = ctx.createImageData(W, H);
 const buf = new Uint32Array(img.data.buffer);
+// 1フレームぶんの「明るさ」「素材ランプ」「発光量」。最後にまとめて色へ量子化する
+const sB = new Float32Array(W * H), rB = new Uint8Array(W * H), eB = new Float32Array(W * H);
 
 // ---------- 乱数 ----------
 function hash2(x, y, s) {
@@ -143,43 +211,71 @@ function hash2(x, y, s) {
   return (h >>> 0) / 4294967296;
 }
 const mod = (a, n) => ((a % n) + n) % n;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
-// ---------- パレット（素材ごとの16段ランプ） ----------
+// ---------- パレット ----------
 function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
 function ramp(stops) {
-  const a = stops.map(hex), out = new Uint32Array(16);
+  const a = stops.map(hex), out = [];
   for (let i = 0; i < 16; i++) {
     const t = i / 15 * (a.length - 1), k = Math.min(a.length - 2, Math.floor(t)), f = t - k;
-    const c = [0, 1, 2].map(j => Math.round(a[k][j] + (a[k + 1][j] - a[k][j]) * f));
-    out[i] = (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0];
+    out.push([0, 1, 2].map(j => Math.round(a[k][j] + (a[k + 1][j] - a[k][j]) * f)));
   }
   return out;
 }
 const RP = {
   WALL: 0, CARPET: 1, CEIL: 2, LIGHT: 3, BASE: 4, CONC: 5, CONCF: 6, CAUTION: 7,
   POOLW: 8, POOLF: 9, EXIT: 10, DOOR: 11, FIG: 12, PLASTIC: 13, ORANGE: 14,
+  RED: 15, BLUE: 16, GOLD: 17, PINK: 18, GREEN: 19, PAPER: 20, WARM: 21, SCRAWL: 22,
 };
-const RAMPS = [
-  ramp(["#120f05", "#4a4016", "#8a7a2e", "#c9b458", "#efe29a"]),  // 壁紙（黄）
-  ramp(["#0d0a03", "#3b3113", "#6b5a26", "#a58e45", "#cdb872"]),  // 湿ったカーペット
-  ramp(["#100f0a", "#4d4a38", "#8f8a6a", "#d2cda8", "#fbf7dc"]),  // 天井材
-  ramp(["#1a1912", "#77745f", "#c7c3a6", "#f1eed7", "#ffffff"]),  // 蛍光灯（発光）
-  ramp(["#090703", "#2a220d", "#4a3d18", "#7a6628", "#a08840"]),  // 幅木
-  ramp(["#080909", "#2b302f", "#4b5250", "#8d9591", "#c3c9c3"]),  // コンクリート壁
-  ramp(["#070808", "#232725", "#3a3f3d", "#6f7672", "#9aa29c"]),  // コンクリート床
-  ramp(["#110d00", "#4d3c00", "#8a6d00", "#e0b400", "#ffe45c"]),  // 注意の黄
-  ramp(["#060c0d", "#2d4244", "#5e7c80", "#b9d3d3", "#f2ffff"]),  // プールの白タイル
-  ramp(["#020b0e", "#0c3a42", "#1f6e7a", "#5cc1c9", "#b8f4f2"]),  // プールの水色タイル
-  ramp(["#000a05", "#063a1c", "#0d6b33", "#2ee07a", "#d8ffe6"]),  // 非常口（発光）
-  ramp(["#0b0703", "#2f1f0f", "#5a3c1e", "#8f6534", "#b88a52"]),  // 扉
-  ramp(["#000000", "#050505", "#0c0c0c", "#161616", "#262626"]),  // 人影
-  ramp(["#050506", "#18181c", "#303036", "#5a5a64", "#8a8a96"]),  // 黒い樹脂
-  ramp(["#100500", "#4a1a00", "#a33c06", "#f06a14", "#ffb070"]),  // パイロン
+const RAMP_SRC = [
+  ["#120f05", "#4a4016", "#8a7a2e", "#c9b458", "#efe29a"],
+  ["#0d0a03", "#3b3113", "#6b5a26", "#a58e45", "#cdb872"],
+  ["#100f0a", "#4d4a38", "#8f8a6a", "#d2cda8", "#fbf7dc"],
+  ["#1a1912", "#77745f", "#c7c3a6", "#f1eed7", "#ffffff"],
+  ["#090703", "#2a220d", "#4a3d18", "#7a6628", "#a08840"],
+  ["#080909", "#2b302f", "#4b5250", "#8d9591", "#c3c9c3"],
+  ["#070808", "#232725", "#3a3f3d", "#6f7672", "#9aa29c"],
+  ["#110d00", "#4d3c00", "#8a6d00", "#e0b400", "#ffe45c"],
+  ["#060c0d", "#2d4244", "#5e7c80", "#b9d3d3", "#f2ffff"],
+  ["#020b0e", "#0c3a42", "#1f6e7a", "#5cc1c9", "#b8f4f2"],
+  ["#000a05", "#063a1c", "#0d6b33", "#2ee07a", "#d8ffe6"],
+  ["#0b0703", "#2f1f0f", "#5a3c1e", "#8f6534", "#b88a52"],
+  ["#000000", "#050505", "#0c0c0c", "#161616", "#262626"],
+  ["#050506", "#18181c", "#303036", "#5a5a64", "#8a8a96"],
+  ["#100500", "#4a1a00", "#a33c06", "#f06a14", "#ffb070"],
+  // ↓ 現実の色（異物だけが持つ。眠くなっても褪せない）
+  ["#1a0205", "#6b0a14", "#c41e2c", "#ff5a5a", "#ffd0c8"],
+  ["#020616", "#0c2a6b", "#2a64d8", "#6fb0ff", "#d8f0ff"],
+  ["#140c00", "#5a3a00", "#b08010", "#f0cc40", "#fff4b0"],
+  ["#1a0610", "#6b1840", "#d84c8c", "#ff9cc8", "#ffe4f0"],
+  ["#021006", "#0a4a1e", "#20a048", "#70e890", "#e0ffe8"],
+  ["#0f0e0a", "#4a463a", "#9a9480", "#e4dcc4", "#fffaf0"],
+  ["#1a0c02", "#7a3a08", "#e89030", "#ffd080", "#fffbe8"],
+  ["#0a0203", "#220606", "#3e0d0c", "#5c1a14", "#7a2a20"],
 ];
-const EMIS = new Uint8Array(RAMPS.length);
-EMIS[RP.LIGHT] = 1; EMIS[RP.EXIT] = 1;
+const NR = RAMP_SRC.length;
+const EMIS = new Uint8Array(NR); EMIS[RP.LIGHT] = EMIS[RP.EXIT] = EMIS[RP.WARM] = 1;
+const REAL = new Uint8Array(NR); [RP.RED, RP.BLUE, RP.GOLD, RP.PINK, RP.GREEN, RP.WARM].forEach(i => REAL[i] = 1);
+// 眠気で世界が「夢の色」（くすんだ藤色）へ褪せていく。8段階ぶんの色表を先に作る
+const DL = 8;
+const COLS = new Uint32Array(DL * NR * 16);
+for (let lv = 0; lv < DL; lv++) {
+  const t = Math.pow(lv / (DL - 1), 0.9);
+  for (let r = 0; r < NR; r++) {
+    const rp = ramp(RAMP_SRC[r]);
+    for (let i = 0; i < 16; i++) {
+      const [cr, cg, cb] = rp[i];
+      const lum = 0.3 * cr + 0.59 * cg + 0.11 * cb;
+      const dr = 14 + lum * 0.74, dg = 10 + lum * 0.66, db = 24 + lum * 0.84;
+      const m = (a, b) => Math.round(a + (b - a) * t);
+      COLS[(lv * NR + r) * 16 + i] = (255 << 24) | (m(cb, db) << 16) | (m(cg, dg) << 8) | m(cr, dr);
+    }
+  }
+}
 const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => v / 16);
-const BLACK = RAMPS[RP.WALL][0];
+const PURE_BLACK = 0xff000000;
 
 // ---------- テクスチャ ----------
 function mkTex(fn) {
@@ -218,7 +314,7 @@ function wallConcrete(x, y) {
 function wallPool(x, y) {
   const gx = x % 8, gy = y % 8;
   if (gx === 0 || gy === 0) return [RP.POOLW, 0.55];
-  if (y >= 24 && y < 32) return [RP.POOLF, 0.75 + n(x >> 3, y >> 3, 5) * 0.08];
+  if (y >= 24) return [RP.POOLF, 0.75 + n(x >> 3, y >> 3, 5) * 0.08];
   return [RP.POOLW, 0.84 + n(x >> 3, y >> 3, 6) * 0.06 + (gx === 1 || gy === 1 ? 0.05 : 0)];
 }
 const FONT = {
@@ -231,8 +327,7 @@ function withExit(base) {
       if (x === 6 || x === 25 || y === 5 || y === 13) return [RP.EXIT, 0.35];
       const lx = x - 9, ly = y - 7;
       if (ly >= 0 && ly < 5 && lx >= 0 && lx < 15 && lx % 4 < 3) {
-        const ch = "EXIT"[lx >> 2];
-        if (FONT[ch][ly][lx % 4] === "#") return [RP.EXIT, 1.05];
+        if (FONT["EXIT"[lx >> 2]][ly][lx % 4] === "#") return [RP.EXIT, 1.05];
       }
       return [RP.EXIT, 0.6];
     }
@@ -242,7 +337,7 @@ function withExit(base) {
 function withDoor(base) {
   return (x, y) => {
     if (x >= 9 && x <= 22 && y >= 5 && y <= 27) {
-      if (y === 27) return [RP.DOOR, 0.02];                     // 扉の下のすき間は真っ暗
+      if (y === 27) return [RP.DOOR, 0.02];
       if (x === 9 || x === 22 || y === 5) return [RP.DOOR, 0.38];
       if (x === 19 && (y === 16 || y === 17)) return [RP.CAUTION, 0.75];
       return [RP.DOOR, 0.6 + n(x, y >> 2, 7) * 0.05 + (x === 10 ? 0.1 : 0)];
@@ -250,10 +345,9 @@ function withDoor(base) {
     return base(x, y);
   };
 }
-
 const WO = (x, y) => wallOffice(x, y, false);
 const WOS = (x, y) => wallOffice(x, y, true);
-const WALL_TEX = []; // [zone*4 + variant]
+const WALL_TEX = [];
 {
   const office = [mkTex(WO), mkTex(WOS), mkTex(withExit(WO)), mkTex(withDoor(WOS))];
   const conc = mkTex(wallConcrete), concExit = mkTex(withExit(wallConcrete));
@@ -292,7 +386,7 @@ const ceilOffice = (x, y) => {
   return [RP.CEIL, 0.64 + (hash2(x, y, 19) < 0.14 ? -0.08 : 0) + n(x, y, 20) * 0.03];
 };
 const ceilConcrete = (x, y) => {
-  if (y >= 12 && y <= 16) return [RP.CONC, y === 13 ? 0.7 : y === 16 ? 0.3 : 0.52];  // 配管
+  if (y >= 12 && y <= 16) return [RP.CONC, y === 13 ? 0.7 : y === 16 ? 0.3 : 0.52];
   return [RP.CONC, 0.34 + n(x, y, 21) * 0.08];
 };
 const ceilPool = (x, y) => {
@@ -308,78 +402,37 @@ const panel = (dead, base) => (x, y) => {
   }
   return base(x, y);
 };
-const PANEL_TEX = [
-  [mkTex(panel(false, ceilOffice)), mkTex(panel(true, ceilOffice))],
-  [mkTex(panel(false, ceilConcrete)), mkTex(panel(true, ceilConcrete))],
-  [mkTex(panel(false, ceilPool)), mkTex(panel(true, ceilPool))],
-  [mkTex(panel(false, ceilOffice)), mkTex(panel(true, ceilOffice))],
-];
+const PANEL_TEX = [ceilOffice, ceilConcrete, ceilPool, ceilOffice].map(b => [mkTex(panel(false, b)), mkTex(panel(true, b))]);
 
-// ---------- スプライト（ドット絵） ----------
-function sprite(rows, map, ww, wh) {
-  const w = rows[0].length, h = rows.length;
+// ---------- スプライト ----------
+function sprite(rows, map, ww, wh, opt = {}) {
+  const w = Math.max(...rows.map(r => r.length)), h = rows.length;
   const b = new Float32Array(w * h), r = new Uint8Array(w * h), a = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const m = map[rows[y][x]];
     if (m) { a[y * w + x] = 1; r[y * w + x] = m[0]; b[y * w + x] = m[1]; }
   }
-  return { w, h, b, r, a, ww, wh };
+  return { w, h, b, r, a, ww, wh, sink: opt.sink || 0 };
 }
+const K = (v) => [RP.PLASTIC, v];
 const SPR = {
   chair: sprite([
-    "................",
-    ".....kkkkkk.....",
-    "....kKKKKKKk....",
-    "....kKKKKKKk....",
-    "....kKKKKKKk....",
-    "....kKKKKKKk....",
-    "....kKKKKKKk....",
-    ".....kkkkkk.....",
-    ".......kk.......",
-    "...kkkkkkkkkk...",
-    "..kKKKKKKKKKKk..",
-    "...kkkkkkkkkk...",
-    ".......kk.......",
-    ".......kk.......",
-    "...kkkkkkkkkk...",
-    "..o.o..oo..o.o..",
-  ], { K: [RP.PLASTIC, 0.6], k: [RP.PLASTIC, 0.32], o: [RP.PLASTIC, 0.2] }, 0.56, 0.56),
+    "................", ".....kkkkkk.....", "....kKKKKKKk....", "....kKKKKKKk....",
+    "....kKKKKKKk....", "....kKKKKKKk....", "....kKKKKKKk....", ".....kkkkkk.....",
+    ".......kk.......", "...kkkkkkkkkk...", "..kKKKKKKKKKKk..", "...kkkkkkkkkk...",
+    ".......kk.......", ".......kk.......", "...kkkkkkkkkk...", "..o.o..oo..o.o..",
+  ], { K: K(0.6), k: K(0.32), o: K(0.2) }, 0.56, 0.56),
   sign: sprite([
-    "................",
-    "......yyyy......",
-    ".....yYYYYy.....",
-    ".....yYYYYy.....",
-    "....yYYkkYYy....",
-    "....yYYkkYYy....",
-    "....yYkkkkYy....",
-    "...yYYYkkYYYy...",
-    "...yYYkYYkYYy...",
-    "...yYYkYYkYYy...",
-    "..yYYYYYYYYYYy..",
-    "..yYkkkkkkkkYy..",
-    "..yYYYYYYYYYYy..",
-    ".yYYYYYYYYYYYYy.",
-    ".yYYYYYYYYYYYYy.",
-    ".yy..........yy.",
-  ], { Y: [RP.CAUTION, 0.85], y: [RP.CAUTION, 0.55], k: [RP.PLASTIC, 0.12] }, 0.5, 0.5),
+    "................", "......yyyy......", ".....yYYYYy.....", ".....yYYYYy.....",
+    "....yYYkkYYy....", "....yYYkkYYy....", "....yYkkkkYy....", "...yYYYkkYYYy...",
+    "...yYYkYYkYYy...", "...yYYkYYkYYy...", "..yYYYYYYYYYYy..", "..yYkkkkkkkkYy..",
+    "..yYYYYYYYYYYy..", ".yYYYYYYYYYYYYy.", ".yYYYYYYYYYYYYy.", ".yy..........yy.",
+  ], { Y: [RP.CAUTION, 0.85], y: [RP.CAUTION, 0.55], k: K(0.12) }, 0.5, 0.5),
   cone: sprite([
-    "............",
-    ".....oo.....",
-    ".....oo.....",
-    "....oOOo....",
-    "....wWWw....",
-    "....wWWw....",
-    "...oOOOOo...",
-    "...oOOOOo...",
-    "...wWWWWw...",
-    "..oOOOOOOo..",
-    "..oOOOOOOo..",
-    "..oOOOOOOo..",
-    ".oOOOOOOOOo.",
-    "kkkkkkkkkkkk",
-    "kKKKKKKKKKKk",
-    "kkkkkkkkkkkk",
-  ], { O: [RP.ORANGE, 0.8], o: [RP.ORANGE, 0.55], W: [RP.POOLW, 0.92], w: [RP.POOLW, 0.7], K: [RP.PLASTIC, 0.3], k: [RP.PLASTIC, 0.15] }, 0.34, 0.45),
+    "............", ".....oo.....", ".....oo.....", "....oOOo....", "....wWWw....", "....wWWw....",
+    "...oOOOOo...", "...oOOOOo...", "...wWWWWw...", "..oOOOOOOo..", "..oOOOOOOo..", "..oOOOOOOo..",
+    ".oOOOOOOOOo.", "kkkkkkkkkkkk", "kKKKKKKKKKKk", "kkkkkkkkkkkk",
+  ], { O: [RP.ORANGE, 0.8], o: [RP.ORANGE, 0.55], W: [RP.POOLW, 0.92], w: [RP.POOLW, 0.7], K: K(0.3), k: K(0.15) }, 0.34, 0.45),
   figure: sprite([
     "...FFFF...", "..FFFFFF..", "..FFFFFF..", "..FFFFFF..", "..FFFFFF..", "...FFFF...",
     "....FF....", ".FFFFFFFF.", "FFFFFFFFFF", "FFFFFFFFFF", "FF.FFFF.FF", "FF.FFFF.FF",
@@ -388,13 +441,125 @@ const SPR = {
     "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..", "..FF..FF..",
     "..FF..FF..", ".FFF..FFF.",
   ], { F: [RP.FIG, 0.35] }, 0.3, 0.94),
+  // --- 物資 ---
+  flash: sprite([
+    "..kkkkkkkkYYY.", ".kRRRRRRRRYWWY", ".kRrRRRRRRYWWY", ".kRRRRRRRRYWWY", "..kkkkkkkkYYY.",
+  ], { R: [RP.RED, 0.6], r: [RP.RED, 0.95], k: K(0.3), Y: [RP.GOLD, 0.7], W: [RP.WARM, 1] }, 0.34, 0.12),
+  coffee: sprite([
+    ".kkkkkk.", "kBBBBBBk", "kbbbbbbk", "kBWWWWBk", "kBWbbWBk", "kBWWWWBk",
+    "kBBBBBBk", "kbbbbbbk", "kBBBBBBk", "kBBBBBBk", "kbbbbbbk", ".kkkkkk.",
+  ], { B: [RP.BLUE, 0.62], b: [RP.BLUE, 0.42], W: [RP.PAPER, 0.9], k: K(0.55) }, 0.15, 0.23),
+  gum: sprite([
+    "GGGGGGGGGGGG", "GggggggggggG", "GgWWWWWWWWgG", "GgWGGGGGGWgG", "GgWWWWWWWWgG", "GggggggggggG", "GGGGGGGGGGGG",
+  ], { G: [RP.GREEN, 0.7], g: [RP.GREEN, 0.5], W: [RP.PAPER, 0.95] }, 0.26, 0.15),
+  battery: sprite([
+    "..kk..", ".kKKk.", "kRRRRk", "kRrrRk", "kRRRRk", "kRRRRk",
+    "kKKKKk", "kKkkKk", "kKKKKk", "kKKKKk", "kKKKKk", ".kkkk.",
+  ], { R: [RP.RED, 0.7], r: [RP.RED, 1.0], K: K(0.45), k: K(0.25) }, 0.11, 0.22),
+  drops: sprite([
+    "..kk..", "..kk..", ".kWWk.", ".WWWW.", "PPPPPP", "PpppPP",
+    "PPWWPP", "PPWWPP", "PPPPPP", "PpppPP", "PPPPPP", ".PPPP.",
+  ], { P: [RP.PINK, 0.7], p: [RP.PINK, 0.5], W: [RP.PAPER, 0.95], k: K(0.4) }, 0.11, 0.22),
+  note: sprite([
+    "WWWWWWWWWWW.", "WwwwwwwwwWWW", "WWWWWWWWWWWW", "WwwwwwwwWWWW", "WWWWWWWWWWWW",
+    "WwwwwwwwwwWW", "WWWWWWWWWWWW", "WwwwwWWWWWWW", "WWWWWWWWWWWW", ".WWWWWWWWWWW",
+  ], { W: [RP.PAPER, 0.85], w: [RP.PAPER, 0.45] }, 0.28, 0.23),
+};
+// --- 覚醒の異物（七つ）。半分だけ世界に沈んでいる ---
+const A_MAP = {
+  R: [RP.RED, 0.65], r: [RP.RED, 0.9], B: [RP.BLUE, 0.7], b: [RP.BLUE, 0.9], G: [RP.GOLD, 0.8], g: [RP.GOLD, 0.5],
+  P: [RP.PINK, 0.65], p: [RP.PINK, 0.42], E: [RP.GREEN, 0.6], W: [RP.PAPER, 0.95], k: K(0.18), s: K(0.35),
+};
+const ANCHORS = [
+  { id: "clock", name: "目覚まし時計", pitch: 880, text: "ベルは鳴っていない。なのに、耳の奥で鳴りつづけている。", spr: sprite([
+    ".GG..........GG.", "GGGG........GGGG", ".GG.RRRRRRRR.GG.", "...RRWWWWWWRR...",
+    "..RWWWWkWWWWWR..", "..RWWWWkWWWWWR..", ".RWWWWWkWWWWWWR.", ".RWWWWWkkkkWWWR.",
+    ".RWWWWWWWWWWWWR.", ".RWWWWWWWWWWWWR.", "..RWWWWWWWWWWR..", "..RWWWWWWWWWWR..",
+    "...RRWWWWWWRR...", "....RRRRRRRR....", "...RR......RR...", "..RR........RR..",
+  ], A_MAP, 0.42, 0.42, { sink: 0.12 }) },
+  { id: "key", name: "家の鍵", pitch: 660, text: "自分の家の鍵だ。キーホルダーの傷に見覚えがある。", spr: sprite([
+    "..GGGG..........", ".GGggGG....rr...", "GGg..gGGGGGrrGGG", "GG....GGGGGGGGGG",
+    "GGg..gGG...G.G.G", ".GGggGG....G.G..", "..GGGG..........",
+  ], A_MAP, 0.42, 0.18, { sink: 0.05 }) },
+  { id: "phone", name: "携帯電話", pitch: 990, text: "着信履歴が埋まっている。ぜんぶ「母」からだ。", spr: sprite([
+    "..kk......", "..kk......", ".PPPPPPPP.", ".PkkkkkkP.", ".PkbbbbkP.", ".PkbWbbkP.",
+    ".PkbbbbkP.", ".PkkkkkkP.", ".PPPPPPPP.", ".PPPPPPPP.", ".PpWpWpWP.", ".PPPPPPPP.",
+    ".PpWpWpWP.", ".PPPPPPPP.", ".PpWpWpWP.", "..PPPPPP..",
+  ], A_MAP, 0.26, 0.42, { sink: 0.12 }) },
+  { id: "pass", name: "定期券", pitch: 740, text: "期限は昨日で切れていた。降りる駅の名前が、にじんで読めない。", spr: sprite([
+    "kkkkkkkkkkkkkk", "kEEEEEEEEEEEEk", "kEWWWWWWWWWWEk", "kEWkkkWWkkkWEk", "kEWWWWWWWWWWEk",
+    "kEBBBBBBBBBBEk", "kEWkkWWWWkkWEk", "kEWWWWWWWWWWEk", "kEEEEEEEEEEEEk", "kkkkkkkkkkkkkk",
+  ], A_MAP, 0.38, 0.27, { sink: 0.08 }) },
+  { id: "photo", name: "家族の写真", pitch: 587, text: "写っている顔のひとつが、どうしても思い出せない。", spr: sprite([
+    "WWWWWWWWWWWW", "WBBBBBBBBBBW", "WBBBBBBBBBBW", "WBBRRBBPPBBW", "WBRRRRBPPPBW",
+    "WBBRRBBBPPBW", "WBRRRRBPPPPW", "WEERREEPPPPW", "WEEEEEEEEEEW", "WEEEEEEEEEEW",
+    "WWWWWWWWWWWW", "WWWWWWWWWWWW", "WWWkkkkWWWWW", "WWWWWWWWWWWW",
+  ], A_MAP, 0.32, 0.38, { sink: 0.1 }) },
+  { id: "chime", name: "風鈴", pitch: 1175, text: "揺らしていないのに、鳴った。夏の匂いがした。", spr: sprite([
+    "....kk....", "....kk....", "..BBBBBB..", ".BbBBBBBB.", ".BbBBBBBB.", "BBBBBBBBBB",
+    "BBrBBBBrBB", "....kk....", "....kk....", "....kk....", "..WWWWWW..", "..WRRRRW..",
+    "..WWWWWW..", "..WRRRRW..", "..WWWWWW..", "...WWWW...",
+  ], A_MAP, 0.26, 0.44, { sink: 0.14 }) },
+  { id: "tag", name: "自分の名札", pitch: 523, text: "名前がにじんで読めない。でも、自分のものだと分かる。", spr: sprite([
+    "....GGGGGG....", "kkkkkkkkkkkkkk", "kWWWWWWWWWWWWk", "kWRRRRRRRRRRWk", "kWWWWWWWWWWWWk",
+    "kWWkkWkkWkkWWk", "kWWkkWkkWkkWWk", "kWWWWWWWWWWWWk", "kWWWWWWWWWWWWk", "kkkkkkkkkkkkkk",
+  ], A_MAP, 0.38, 0.27, { sink: 0.08 }) },
+];
+// 帰り道：少しだけ開いた玄関のドア
+SPR.door = (() => {
+  const rows = [];
+  for (let y = 0; y < 32; y++) {
+    let r = "";
+    for (let x = 0; x < 16; x++) {
+      let c = "d";
+      if (x === 0 || y === 0) c = "D";
+      else if (x >= 13) c = y < 31 ? "L" : "L";
+      else if (x === 12) c = "D";
+      else if ((y === 4 || y === 15 || y === 27) && x > 1 && x < 11) c = "D";
+      else if ((x === 2 || x === 10) && y > 4 && y < 27 && y !== 15) c = "D";
+      else if (x === 10 && (y === 17 || y === 18)) c = "g";
+      r += c;
+    }
+    rows.push(r);
+  }
+  return sprite(rows, { D: [RP.DOOR, 0.4], d: [RP.DOOR, 0.62], L: [RP.WARM, 1.05], g: [RP.GOLD, 0.85] }, 0.62, 0.98);
+})();
+const SUPPLIES = {
+  coffee: { name: "缶コーヒー", spr: SPR.coffee, text: "まだ冷たい。誰がここへ持ちこんだのだろう。" },
+  gum: { name: "ミントガム", spr: SPR.gum, text: "包み紙に、知らない字で「ねるな」と書いてある。" },
+  battery: { name: "乾電池", spr: SPR.battery, text: "懐中電灯の予備になる。" },
+  drops: { name: "目薬", spr: SPR.drops, text: "さすと、しばらく眠気がにぶくなる。" },
 };
 
+// 壁の落書き（正気が減るほど見えてくる）と、人の形をしたしみ
+const WORDS = ["おきろ", "ねるな", "ここ", "ねむい", "たすけて", "あけて", "まだ", "だれ"];
+function scrawlTex(base, word, seed) {
+  const c = document.createElement("canvas"); c.width = c.height = T;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.textBaseline = "top";
+  const lines = word.length <= 2 ? [word] : [word.slice(0, 2), word.slice(2)];
+  const fs = lines.length === 1 ? 13 : 12;
+  g.font = `bold ${fs}px sans-serif`;
+  g.translate(16, 16); g.rotate((hash2(seed, 1, 90) - 0.5) * 0.4); g.translate(-16, -16);
+  lines.forEach((l, i) => g.fillText(l, 3 + hash2(seed, i, 91) * 4, (lines.length === 1 ? 9 : 2) + i * 13));
+  const d = g.getImageData(0, 0, T, T).data;
+  return mkTex((x, y) => {
+    if (d[(y * T + x) * 4 + 3] > 110 && y < 28) return [RP.SCRAWL, 0.75 + n(x, y, 30) * 0.3];
+    return base(x, y);
+  });
+}
+const SCRAWL_TEX = [WOS, wallConcrete, wallPool].map((b, zi) => WORDS.map((w, i) => scrawlTex(b, w, zi * 10 + i)));
+const HUMAN_TEX = mkTex((x, y) => {
+  const [rp, b] = wallOffice(x, y, true);
+  const f = SPR.figure;
+  if (y < 28 && x >= 10 && x <= 21) {
+    const fx = Math.floor((x - 10) / 12 * f.w), fy = Math.floor(y / 28 * f.h);
+    if (f.a[fy * f.w + fx]) return [rp, b * (0.5 + n(x, y, 31) * 0.12)];
+  }
+  return [rp, b];
+});
+
 // ---------- 空間の生成 ----------
-//  部屋は P×P セルの格子。部屋と部屋の境目に壁の「区間」があり、
-//  区間ごとにハッシュで「無い／すき間1〜2つ付きの壁」を決める。
-//  どの区間にも必ずすき間があるので、すべての部屋はつながっている。
-//  3×3部屋の「区画」ごとに、事務所／消灯区画／駐車場／プールのどれかになる。
 const Z = { OFFICE: 0, HALL: 1, POOL: 2, DARK: 3 };
 const ZONE_NAME = ["B0 黄色い部屋", "B1 地下駐車場", "B2 屋内プール", "B0 消灯区画"];
 function district(rx, ry) { return [Math.floor(rx / 3), Math.floor(ry / 3)]; }
@@ -404,7 +569,6 @@ function zoneOfRoom(rx, ry) {
   const h = hash2(dx, dy, 77);
   return h < 0.5 ? Z.OFFICE : h < 0.66 ? Z.DARK : h < 0.83 ? Z.HALL : Z.POOL;
 }
-// 反復区画：部屋のハッシュを2×2で使い回す。同じ部屋が何度も出てくる
 function isLoopRoom(rx, ry) {
   const [dx, dy] = district(rx, ry);
   if (dx === 0 && dy === 0) return false;
@@ -412,7 +576,7 @@ function isLoopRoom(rx, ry) {
 }
 function roomKey(rx, ry) { return isLoopRoom(rx, ry) ? [5000 + mod(rx, 2), 5000 + mod(ry, 2)] : [rx, ry]; }
 function segSolid(rx, ry, o, t, za, zb) {
-  if (za === Z.HALL && zb === Z.HALL) return t % 3 === 0;  // 駐車場は柱だけ
+  if (za === Z.HALL && zb === Z.HALL) return t % 3 === 0;
   const [kx, ky] = roomKey(rx, ry), k1 = kx * 2 + o;
   const h = hash2(k1, ky, 11);
   const openP = (za === Z.POOL || zb === Z.POOL) ? 0.4 : (za !== zb ? 0.1 : 0.22);
@@ -423,7 +587,7 @@ function segSolid(rx, ry, o, t, za, zb) {
   if (h > 0.9 && t === 1 + Math.floor(hash2(k1, ky, 14) * (P - 1))) return false;
   return true;
 }
-// セル1つを1バイトに：bit0-1 区画 / bit2 壁 / bit3-4 壁の種類 / bit5 床の種類
+// 1セル1バイト：bit0-1 区画 / bit2 壁 / bit3-4 壁の種類 / bit5 床の種類 / bit6 落書き候補 / bit7 人型のしみ
 function genCell(x, y) {
   const rx = Math.floor(x / P), ry = Math.floor(y / P), lx = x - rx * P, ly = y - ry * P;
   const z = zoneOfRoom(rx, ry);
@@ -433,17 +597,19 @@ function genCell(x, y) {
   else if (ly === 0) { solid = segSolid(rx, ry, 1, lx, z, zoneOfRoom(rx, ry - 1)); seg = true; }
   else if (z === Z.HALL) solid = lx % 3 === 0 && ly % 3 === 0;
   else if (lx === 3 && ly === 3) { const [kx, ky] = roomKey(rx, ry); solid = hash2(kx, ky, 5) < 0.14; }
-  let v = 0;
+  let v = 0, extra = 0;
   if (solid) {
     const h = hash2(x, y, 21);
-    if (seg && h < 0.012) v = 2;                                   // 非常口
-    else if (seg && (z === Z.OFFICE || z === Z.DARK) && h < 0.03) v = 3; // 開かない扉
-    else if (h < (z === Z.DARK ? 0.4 : 0.14)) v = 1;                // しみ
+    if (seg && h < 0.012) v = 2;
+    else if (seg && (z === Z.OFFICE || z === Z.DARK) && h < 0.03) v = 3;
+    else if (h < (z === Z.DARK ? 0.4 : 0.14)) v = 1;
+    if (v < 2 && hash2(x, y, 25) < 0.16) extra |= 64;
+    if (v < 2 && (z === Z.OFFICE || z === Z.DARK) && hash2(x, y, 26) < 0.012) extra |= 128;
   }
   let fv = 0;
   if (z === Z.HALL) fv = lx % 3 === 1 ? 1 : 0;
   else if (z !== Z.POOL) fv = hash2(x, y, 31) < (z === Z.DARK ? 0.2 : 0.07) ? 1 : 0;
-  return z | (solid ? 4 : 0) | (v << 3) | (fv << 5);
+  return z | (solid ? 4 : 0) | (v << 3) | (fv << 5) | extra;
 }
 const CH = 32, chunks = new Map();
 function cellAt(x, y) {
@@ -468,14 +634,40 @@ function propOfRoom(rx, ry) {
   if (solidAt(x, y)) return null;
   return { x, y, spr: z === Z.POOL ? SPR.sign : z === Z.HALL ? SPR.cone : SPR.chair };
 }
+// 部屋ごとの拾えるもの。異物は消灯区画ほど多い（危険と引きかえ）
+function itemOfRoom(rx, ry) {
+  const id = rx + "," + ry;
+  if (gs.picked.has(id)) return null;
+  if (rx === 0 && ry === 0) return { id, kind: "flash", x: 4.5, y: 2.5, spr: SPR.flash };
+  const z = zoneOfRoom(rx, ry), h = hash2(rx, ry, 61);
+  const x = rx * P + 1 + Math.floor(hash2(rx, ry, 62) * 5) + 0.5;
+  const y = ry * P + 1 + Math.floor(hash2(rx, ry, 63) * 5) + 0.5;
+  if (solidAt(x, y)) return null;
+  const pA = z === Z.DARK ? 0.1 : 0.05;
+  if (h < pA) {
+    const left = ANCHORS.filter(a => !gs.anchors.has(a.id));
+    if (!left.length) return null;
+    const a = left[Math.floor(hash2(rx, ry, 64) * left.length)];
+    return { id, kind: "anchor", a, x, y, spr: a.spr };
+  }
+  if (h < pA + 0.13) {
+    const s = hash2(rx, ry, 65);
+    const kind = s < 0.33 ? "coffee" : s < 0.6 ? "gum" : s < 0.8 ? "battery" : "drops";
+    return { id, kind, x, y, spr: SUPPLIES[kind].spr };
+  }
+  if (h < pA + 0.18) return { id, kind: "note", n: Math.floor(hash2(rx, ry, 67) * NOTES.length), x, y, spr: SPR.note };
+  // 正気が削れると、ありもしない異物が見える
+  if (gs.sanity < 45 && hash2(rx, ry, 66) < (45 - gs.sanity) / 110) {
+    const a = ANCHORS[Math.floor(hash2(rx, ry, 68) * ANCHORS.length)];
+    return { id, kind: "fake", a, x, y, spr: a.spr };
+  }
+  return null;
+}
 
 // ---------- 照明 ----------
-//  蛍光灯は3セルおきの格子に並ぶ。区画ごとに「点いている／切れている／ちらつく」の割合が違う
 const LN = Math.ceil(G / 3) + 8;
-const lampType = new Uint8Array(LN * LN);   // 0なし 1点灯 2切れ 3ちらつき
-const lampZone = new Uint8Array(LN * LN);
-const lampH = new Float32Array(LN * LN);
-const lampI = new Float32Array(LN * LN);
+const lampType = new Uint8Array(LN * LN), lampZone = new Uint8Array(LN * LN);
+const lampH = new Float32Array(LN * LN), lampI = new Float32Array(LN * LN);
 const lm = new Float32Array(G1 * G1);
 const cells = new Uint8Array(G * G);
 let ox = 0, oy = 0, LA0 = 0, LB0 = 0, gridKey = "";
@@ -491,9 +683,9 @@ function lampAt(a, b) {
   }
   return [r < 0.04 ? 3 : 1, z];
 }
-function refreshGrid(px, py) {
+function refreshGrid(px, py, force) {
   const nx = Math.floor(px) - R, ny = Math.floor(py) - R, key = nx + "," + ny;
-  if (key === gridKey) return;
+  if (key === gridKey && !force) return;
   gridKey = key; ox = nx; oy = ny;
   for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) cells[j * G + i] = cellAt(ox + i, oy + j);
   LA0 = Math.floor((ox - 1.5) / 3) - 3; LB0 = Math.floor((oy - 1.5) / 3) - 3;
@@ -516,12 +708,10 @@ function updateLamps(t) {
     if (ev.stutter > 0) I *= hash2(k, Math.floor(t * 18), 53) > 0.45 ? 1 : 0.05;
     if (ev.black) {
       const a = LA0 + k % LN, b = LB0 + Math.floor(k / LN);
-      const d = Math.hypot(3 * a + 1.5 - pl.x, 3 * b + 1.5 - pl.y);
-      if (d > ev.blackR) I = 0;
+      if (Math.hypot(3 * a + 1.5 - pl.x, 3 * b + 1.5 - pl.y) > ev.blackR) I = 0;
     }
     lampI[k] = I;
   }
-  // 格子の角ごとに明るさを足し合わせる（あとで双線形補間）
   for (let j = 0; j <= G; j++) {
     const Y = oy + j, b0 = Math.floor((Y - 1.5) / 3) - 1;
     for (let i = 0; i <= G; i++) {
@@ -552,15 +742,27 @@ function lightAt(wx, wy) {
 const FOGN = 1024, FOGS = FOGN / MAXD;
 const fogLUT = new Float32Array(FOGN + 2);
 for (let i = 0; i <= FOGN + 1; i++) fogLUT[i] = Math.pow(Math.max(0, 1 - i / FOGN), 1.55);
-const vig = new Float32Array(W * H);
+const vigShape = new Float32Array(W * H), cone = new Float32Array(W * H);
 for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
   const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2);
-  vig[y * W + x] = 1 - 0.42 * Math.pow(Math.min(1, (dx * dx * 0.8 + dy * dy) / 1.8), 1.3);
+  vigShape[y * W + x] = Math.pow(Math.min(1, (dx * dx * 0.8 + dy * dy) / 1.8), 1.3);
+  const c = 1 - (Math.pow((x - W / 2) / 95, 2) + Math.pow((y - H / 2 - 6) / 80, 2));
+  cone[y * W + x] = c > 0 ? Math.min(1, c * 1.6) : 0;
 }
 const floorDist = new Float32Array(H), ceilDist = new Float32Array(H);
 const zbuf = new Float32Array(W);
-
 const pl = { x: 2.5, y: 2.5, a: 0.35, pitch: 0, camZ: 0.5, bob: 0 };
+let FL = 0; // 懐中電灯の強さ
+
+function wallTexFor(hit, from, mx, my) {
+  const fz = from & 3;
+  if ((hit & 128) && (fz === Z.OFFICE || fz === Z.DARK)) return HUMAN_TEX;
+  if ((hit & 64) && gs.sanity < 62) {
+    const X = ox + mx, Y = oy + my;
+    if (hash2(X, Y, 23) < (62 - gs.sanity) / 48) return SCRAWL_TEX[fz === Z.HALL ? 1 : fz === Z.POOL ? 2 : 0][Math.floor(hash2(X, Y, 24) * WORDS.length)];
+  }
+  return WALL_TEX[fz * 4 + ((hit >> 3) & 3)];
+}
 
 function render(tt) {
   const dirX = Math.cos(pl.a), dirY = Math.sin(pl.a);
@@ -568,7 +770,7 @@ function render(tt) {
   const hz = H / 2 + pl.pitch;
   const camZ = pl.camZ;
   const lpx = pl.x - ox, lpy = pl.y - oy;
-  const fade = st.fade;
+  const breathe = Math.max(0, gs.sleep / 100 - 0.55) * 0.16;
   for (let y = 0; y < H; y++) {
     floorDist[y] = y + 0.5 > hz ? camZ * PROJ / (y + 0.5 - hz) : 1e9;
     ceilDist[y] = y + 0.5 < hz ? (1 - camZ) * PROJ / (hz - y - 0.5) : 1e9;
@@ -578,7 +780,6 @@ function render(tt) {
   for (let x = 0; x < W; x++) {
     const cam = 2 * (x + 0.5) / W - 1;
     const rdx = dirX + plX * cam, rdy = dirY + plY * cam;
-    // --- 壁（DDA） ---
     let mapX = lpx | 0, mapY = lpy | 0;
     const ddx = Math.abs(1 / rdx), ddy = Math.abs(1 / rdy);
     let stepX, stepY, sdx, sdy;
@@ -597,7 +798,8 @@ function render(tt) {
     zbuf[x] = dist;
     let y0 = Math.floor(hz), y1 = y0;
     if (hit) {
-      const lineH = PROJ / dist;
+      // 眠気が深いと、壁がゆっくり呼吸する
+      const lineH = PROJ / dist * (1 + breathe * Math.sin(tt * 1.3 + x * 0.035 + dist * 0.4));
       const top = hz - (1 - camZ) * lineH, bot = hz + camZ * lineH;
       y0 = Math.max(0, Math.ceil(top - 0.5)); y1 = Math.min(H, Math.ceil(bot - 0.5));
       let wx = side === 0 ? lpy + dist * rdy : lpx + dist * rdx;
@@ -605,24 +807,23 @@ function render(tt) {
       let tx = (wx * T) | 0;
       if (side === 0 && rdx < 0) tx = T - 1 - tx;
       if (side === 1 && rdy > 0) tx = T - 1 - tx;
-      // 壁の素材は「見ている側の部屋」に合わせる
-      const tex = WALL_TEX[(from & 3) * 4 + ((hit >> 3) & 3)];
+      const tex = wallTexFor(hit, from, mapX, mapY);
       const fog = fogLUT[(dist * FOGS) | 0];
       const L = lightAt(pl.x + rdx * (dist - 0.04), pl.y + rdy * (dist - 0.04));
-      const base = L * fog * (side ? 0.8 : 1) * fade;
-      const efog = fog * fade;
+      const sideK = side ? 0.8 : 1;
+      const fd = FL / (1 + dist * dist * 0.035);
       for (let y = y0; y < y1; y++) {
         let ty = (((y + 0.5 - top) / lineH) * T) | 0; if (ty > T - 1) ty = T - 1;
-        const k = ty * T + tx, rp = tex.r[k];
-        const s = tex.b[k] * (EMIS[rp] ? efog : base) * vig[y * W + x];
-        let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
-        buf[y * W + x] = RAMPS[rp][idx];
+        const k = ty * T + tx, rp = tex.r[k], i = y * W + x;
+        if (EMIS[rp]) { const s = tex.b[k] * fog; sB[i] = s; eB[i] = s; }
+        else { sB[i] = tex.b[k] * (L + fd * cone[i]) * fog * sideK; eB[i] = 0; }
+        rB[i] = rp;
       }
     }
     // --- 床 ---
     for (let y = Math.max(y1, 0); y < H; y++) {
-      const d = floorDist[y];
-      if (d >= MAXD) { buf[y * W + x] = BLACK; continue; }
+      const i = y * W + x, d = floorDist[y];
+      if (d >= MAXD) { sB[i] = 0; rB[i] = 0; eB[i] = 0; continue; }
       const wx = lpx + rdx * d, wy = lpy + rdy * d;
       const ci = wx | 0, cj = wy | 0;
       const c = cells[cj * G + ci], z = c & 3;
@@ -633,66 +834,80 @@ function render(tt) {
       if (z === Z.POOL) b *= 0.92 + 0.14 * Math.sin(wx * 2.3 + tt * 1.1) * Math.sin(wy * 2.1 - tt * 0.8 + wx * 0.7);
       const li = cj * G1 + ci;
       const l0 = lm[li] + (lm[li + 1] - lm[li]) * fx, l1 = lm[li + G1] + (lm[li + G1 + 1] - lm[li + G1]) * fx;
-      const s = b * (l0 + (l1 - l0) * fy) * fogLUT[(d * FOGS) | 0] * vig[y * W + x] * fade;
-      let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
-      buf[y * W + x] = RAMPS[tex.r[k]][idx];
+      sB[i] = b * (l0 + (l1 - l0) * fy + FL * cone[i] / (1 + d * d * 0.035)) * fogLUT[(d * FOGS) | 0];
+      rB[i] = tex.r[k]; eB[i] = 0;
     }
     // --- 天井 ---
     for (let y = Math.min(y0, H) - 1; y >= 0; y--) {
-      const d = ceilDist[y];
-      if (d >= MAXD) { buf[y * W + x] = BLACK; continue; }
+      const i = y * W + x, d = ceilDist[y];
+      if (d >= MAXD) { sB[i] = 0; rB[i] = 0; eB[i] = 0; continue; }
       const wx = lpx + rdx * d, wy = lpy + rdy * d;
       const ci = wx | 0, cj = wy | 0;
       const c = cells[cj * G + ci], z = c & 3;
       let tex = CEIL_TEX[z], li = -1;
       if ((ci + mx) % 3 === 1 && (cj + my) % 3 === 1) {
-        const la = (ci + ox - 1) / 3 - LA0, lb = (cj + oy - 1) / 3 - LB0;
-        li = lb * LN + la;
+        li = ((cj + oy - 1) / 3 - LB0) * LN + ((ci + ox - 1) / 3 - LA0);
         const ty = lampType[li];
         if (ty) tex = PANEL_TEX[z][ty === 2 ? 1 : 0]; else li = -1;
       }
       const fx = wx - ci, fy = wy - cj;
       const k = ((fy * T) | 0) * T + ((fx * T) | 0);
       const rp = tex.r[k];
-      const fog = fogLUT[(d * FOGS) | 0] * vig[y * W + x] * fade;
-      let s;
-      if (EMIS[rp]) s = tex.b[k] * (0.1 + 0.9 * lampI[li]) * fog;
+      const fog = fogLUT[(d * FOGS) | 0];
+      if (EMIS[rp]) { const s = tex.b[k] * (0.1 + 0.9 * lampI[li]) * fog; sB[i] = s; eB[i] = s; }
       else {
         const lj = cj * G1 + ci;
         const l0 = lm[lj] + (lm[lj + 1] - lm[lj]) * fx, l1 = lm[lj + G1] + (lm[lj + G1 + 1] - lm[lj + G1]) * fx;
-        s = tex.b[k] * (l0 + (l1 - l0) * fy) * fog;
+        sB[i] = tex.b[k] * (l0 + (l1 - l0) * fy + FL * cone[i] * 0.6 / (1 + d * d * 0.035)) * fog; eB[i] = 0;
       }
-      let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
-      buf[y * W + x] = RAMPS[rp][idx];
+      rB[i] = rp;
     }
   }
-  drawSprites(dirX, dirY, plX, plY, hz, camZ, fade);
+  drawSprites(dirX, dirY, plX, plY, hz, camZ, tt);
+  drawDust(dirX, dirY, plX, plY, hz, camZ);
+  composite(tt);
   postFX(tt);
   ctx.putImageData(img, 0, 0);
 }
 
-function drawSprites(dirX, dirY, plX, plY, hz, camZ, fade) {
+function collectSprites(tt) {
   const list = [];
   const r0x = Math.floor((pl.x - MAXD) / P), r1x = Math.floor((pl.x + MAXD) / P);
   const r0y = Math.floor((pl.y - MAXD) / P), r1y = Math.floor((pl.y + MAXD) / P);
   for (let ry = r0y; ry <= r1y; ry++) for (let rx = r0x; rx <= r1x; rx++) {
     const p = propOfRoom(rx, ry); if (p) list.push(p);
+    const it = itemOfRoom(rx, ry);
+    if (it) {
+      const anchor = it.kind === "anchor" || it.kind === "fake";
+      const pulse = 0.5 + 0.5 * Math.sin(tt * 3 + rx * 1.7 + ry);
+      list.push({ x: it.x, y: it.y, spr: it.spr, glow: anchor ? 0.55 + 0.35 * pulse : it.kind === "note" ? 0 : 0.18, bloom: anchor ? 0.75 : 0.2, hover: anchor ? 0.03 * Math.sin(tt * 1.6 + rx) : 0 });
+    }
   }
   if (fig.on) list.push({ x: fig.x, y: fig.y, spr: SPR.figure });
+  if (gs.door) list.push({ x: gs.door.x, y: gs.door.y, spr: SPR.door, glow: 0.6, bloom: 2.2 });
+  return list;
+}
+function drawSprites(dirX, dirY, plX, plY, hz, camZ, tt) {
+  const list = collectSprites(tt);
   const inv = 1 / (plX * dirY - dirX * plY);
   for (const p of list) { const dx = p.x - pl.x, dy = p.y - pl.y; p.d = dx * dx + dy * dy; }
   list.sort((a, b) => b.d - a.d);
   for (const p of list) {
     const rx = p.x - pl.x, ry = p.y - pl.y;
     const tX = inv * (dirY * rx - dirX * ry), tY = inv * (-plY * rx + plX * ry);
-    if (tY < 0.25 || tY > MAXD) continue;
-    const sp = p.spr;
+    if (tY < 0.2 || tY > MAXD) continue;
+    const sp = p.spr, sink = sp.sink - (p.hover || 0);
     const sx = (W / 2) * (1 + tX / tY);
     const wpx = sp.ww * PROJ / tY;
-    const yb = hz + camZ * PROJ / tY, yt = hz + (camZ - sp.wh) * PROJ / tY;
+    const yb = hz + (camZ + sink) * PROJ / tY, yt = hz + (camZ - sp.wh + sink) * PROJ / tY;
+    const yFloor = hz + camZ * PROJ / tY;
     const x0 = Math.max(0, Math.ceil(sx - wpx / 2 - 0.5)), x1 = Math.min(W, Math.ceil(sx + wpx / 2 - 0.5));
-    const y0 = Math.max(0, Math.ceil(yt - 0.5)), y1 = Math.min(H, Math.ceil(yb - 0.5));
-    const base = lightAt(p.x, p.y) * fogLUT[(tY * FOGS) | 0] * fade;
+    const y0 = Math.max(0, Math.ceil(yt - 0.5)), y1 = Math.min(H, Math.ceil(Math.min(yb, yFloor) - 0.5));
+    const fog = fogLUT[(tY * FOGS) | 0];
+    const mid = clamp(Math.round(sx), 0, W - 1) + clamp(Math.round((yt + yb) / 2), 0, H - 1) * W;
+    let L = Math.max(lightAt(p.x, p.y) + FL * cone[mid] / (1 + tY * tY * 0.035), p.glow || 0);
+    if (p.glow) L = Math.min(L, 0.95);  // 異物は白飛びさせず、色で目立たせる
+    const base = L * fog, bl = (p.bloom || 0) * fog;
     for (let x = x0; x < x1; x++) {
       if (tY >= zbuf[x]) continue;
       const tx = Math.min(sp.w - 1, (((x + 0.5 - (sx - wpx / 2)) / wpx) * sp.w) | 0);
@@ -700,15 +915,103 @@ function drawSprites(dirX, dirY, plX, plY, hz, camZ, fade) {
         const ty = Math.min(sp.h - 1, (((y + 0.5 - yt) / (yb - yt)) * sp.h) | 0);
         const k = ty * sp.w + tx;
         if (!sp.a[k]) continue;
-        const s = sp.b[k] * base * vig[y * W + x];
-        let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
-        buf[y * W + x] = RAMPS[sp.r[k]][idx];
+        const i = y * W + x, rp = sp.r[k];
+        const s = sp.b[k] * (EMIS[rp] ? fog : base);
+        sB[i] = s; rB[i] = rp; eB[i] = EMIS[rp] ? s * (bl > 0 ? bl : 1) : s * bl;
       }
     }
   }
 }
 
-// ビデオテープの乱れ
+// 光の中を漂う埃
+const DUST = 90, dust = [];
+for (let i = 0; i < DUST; i++) dust.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: -1 });
+function updateDust(dt) {
+  for (const d of dust) {
+    if (d.t < 0 || Math.hypot(d.x - pl.x, d.y - pl.y) > 6.5) {
+      const a = Math.random() * Math.PI * 2, r = 0.6 + Math.random() * 5.5;
+      d.x = pl.x + Math.cos(a) * r; d.y = pl.y + Math.sin(a) * r; d.z = 0.1 + Math.random() * 0.85;
+      d.vx = (Math.random() - 0.5) * 0.06; d.vy = (Math.random() - 0.5) * 0.06; d.vz = (Math.random() - 0.6) * 0.03;
+      d.t = Math.random() * 6;
+    }
+    d.t += dt;
+    d.x += d.vx * dt; d.y += d.vy * dt; d.z += (d.vz + Math.sin(d.t * 0.9) * 0.01) * dt;
+    if (d.z < 0.02 || d.z > 0.98) d.vz *= -1;
+  }
+}
+function drawDust(dirX, dirY, plX, plY, hz, camZ) {
+  const inv = 1 / (plX * dirY - dirX * plY);
+  for (const d of dust) {
+    const rx = d.x - pl.x, ry = d.y - pl.y;
+    const tX = inv * (dirY * rx - dirX * ry), tY = inv * (-plY * rx + plX * ry);
+    if (tY < 0.3 || tY > 7) continue;
+    const sx = Math.round((W / 2) * (1 + tX / tY) - 0.5), sy = Math.round(hz + (camZ - d.z) * PROJ / tY - 0.5);
+    if (sx < 0 || sx >= W || sy < 0 || sy >= H || tY >= zbuf[sx]) continue;
+    const L = lightAt(d.x, d.y) + FL * cone[sy * W + sx] * 1.4;
+    if (L < 0.5) continue;
+    const i = sy * W + sx, tw = 0.5 + 0.5 * Math.sin(d.t * 2.3);
+    sB[i] = Math.max(sB[i], (0.45 + 0.4 * tw) * Math.min(1.3, L) * fogLUT[(tY * FOGS) | 0]);
+    rB[i] = RP.CEIL; eB[i] = 0.25 * tw;
+  }
+}
+
+// --- 仕上げ：ブルーム → 周辺減光 → まぶた → 夢の色へ量子化 ---
+const BW = 80, BH = 45;
+const bA = new Float32Array(BW * BH), bT = new Float32Array(BW * BH);
+function blur(src, dst, horiz) {
+  const r = 3;
+  for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) {
+    let s = 0;
+    for (let k = -r; k <= r; k++) {
+      const xx = horiz ? clamp(x + k, 0, BW - 1) : x, yy = horiz ? y : clamp(y + k, 0, BH - 1);
+      s += src[yy * BW + xx];
+    }
+    dst[y * BW + x] = s / (2 * r + 1);
+  }
+}
+const bx0 = new Int16Array(W), bfx = new Float32Array(W), by0 = new Int16Array(H), bfy = new Float32Array(H);
+for (let x = 0; x < W; x++) { const f = clamp((x + 0.5) / 4 - 0.5, 0, BW - 1.001); bx0[x] = f | 0; bfx[x] = f - (f | 0); }
+for (let y = 0; y < H; y++) { const f = clamp((y + 0.5) / 4 - 0.5, 0, BH - 1.001); by0[y] = f | 0; bfy[y] = f - (f | 0); }
+
+function composite(tt) {
+  for (let by = 0; by < BH; by++) for (let bx = 0; bx < BW; bx++) {
+    let s = 0;
+    for (let j = 0; j < 4; j++) { const row = (by * 4 + j) * W + bx * 4; s += eB[row] + eB[row + 1] + eB[row + 2] + eB[row + 3]; }
+    s /= 16;
+    bA[by * BW + bx] = s > 0.35 ? s - 0.35 : 0;
+  }
+  blur(bA, bT, true); blur(bT, bA, false); blur(bA, bT, true); blur(bT, bA, false);
+
+  const d = gs.sleep / 100;
+  const lv = Math.min(DL - 1, Math.floor(smooth(0.3, 1, d) * (DL - 0.01)));
+  const vk = 0.4 + 0.45 * d;
+  const fade = st.fade;
+  const lid = blink.lid;
+  const inv = st.invert > 0;
+  const BK = 1.25;
+  for (let y = 0; y < H; y++) {
+    const b0 = by0[y], fy = bfy[y];
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      let lidK = 1;
+      if (lid > 0) {
+        const e = (x - W / 2) / (W / 2);
+        const edge = lid * (H / 2 + 8) * (1 - 0.25 * e * e) + lid * 6;
+        const dd = Math.min(y - edge, (H - 1 - y) - edge);
+        if (dd < 0) { buf[i] = PURE_BLACK; continue; }
+        if (dd < 10) lidK = dd / 10;
+      }
+      const k0 = b0 * BW + bx0[x], fx = bfx[x];
+      const t0 = bA[k0] + (bA[k0 + 1] - bA[k0]) * fx, t1 = bA[k0 + BW] + (bA[k0 + BW + 1] - bA[k0 + BW]) * fx;
+      const s = (sB[i] * (1 - vk * vigShape[i]) + (t0 + (t1 - t0) * fy) * BK) * fade * lidK;
+      let idx = (s * 15 + BAY[((y & 3) << 2) | (x & 3)]) | 0; if (idx > 15) idx = 15;
+      if (inv) idx = 15 - idx;
+      const r = rB[i];
+      buf[i] = COLS[((REAL[r] ? 0 : lv) * NR + r) * 16 + idx];
+    }
+  }
+}
+
 const rowTmp = new Uint32Array(W);
 function postFX(tt) {
   const g = st.glitch;
@@ -722,7 +1025,6 @@ function postFX(tt) {
     rowTmp.set(buf.subarray(row, row + W));
     for (let x = 0; x < W; x++) buf[row + x] = rowTmp[mod(x - off, W)];
   }
-  // ゆっくり流れるトラッキングノイズ
   const band = Math.floor((tt * 23) % (H + 60)) - 30;
   const amt = 0.05 + g * 0.6;
   for (let y = Math.max(0, band); y < Math.min(H, band + 3); y++) {
@@ -740,11 +1042,13 @@ function initAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   const ac = new AC(); au.ac = ac;
-  const master = ac.createGain(); master.gain.value = 0.8; master.connect(ac.destination);
+  // 眠くなるほど、世界の音がこもっていく
+  const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 14000; lp.connect(ac.destination);
+  const master = ac.createGain(); master.gain.value = 0.8; master.connect(lp);
   const len = Math.floor(ac.sampleRate * 2.8), ir = ac.createBuffer(2, len, ac.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
-    const d = ir.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+    const dd = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) dd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
   }
   const verb = ac.createConvolver(); verb.buffer = ir;
   const wet = ac.createGain(); wet.gain.value = 0.2;
@@ -752,7 +1056,6 @@ function initAudio() {
   const sfx = ac.createGain(); sfx.connect(master); sfx.connect(verb);
   const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-  // 蛍光灯のハム：60Hzのノコギリ波＋少しずれた120Hzでうなりを作る
   const humF = ac.createBiquadFilter(); humF.type = "lowpass"; humF.frequency.value = 480; humF.Q.value = 0.8;
   const hum = ac.createGain(); hum.gain.value = 0;
   const o1 = ac.createOscillator(); o1.type = "sawtooth"; o1.frequency.value = 60;
@@ -760,12 +1063,16 @@ function initAudio() {
   const o2g = ac.createGain(); o2g.gain.value = 0.22;
   o1.connect(humF); o2.connect(o2g); o2g.connect(humF); humF.connect(hum); hum.connect(master);
   o1.start(); o2.start();
-  // 空調のサー音
   const air = ac.createBufferSource(); air.buffer = nb; air.loop = true;
   const airF = ac.createBiquadFilter(); airF.type = "bandpass"; airF.frequency.value = 900; airF.Q.value = 0.6;
   const airG = ac.createGain(); airG.gain.value = 0.02;
   air.connect(airF); airF.connect(airG); airG.connect(master); air.start();
-  Object.assign(au, { master, verb, wet, sfx, nb, hum, o1, humF });
+  Object.assign(au, { master, lp, verb, wet, sfx, nb, hum, o1 });
+}
+function panNode(pan) {
+  const ac = au.ac;
+  if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); return p; }
+  return ac.createGain();
 }
 function burst({ freq, type = "lowpass", q = 0.8, vol = 0.5, dur = 0.1, pan = 0, when = 0, dry = true }) {
   const ac = au.ac; if (!ac) return;
@@ -776,26 +1083,35 @@ function burst({ freq, type = "lowpass", q = 0.8, vol = 0.5, dur = 0.1, pan = 0,
   g.gain.setValueAtTime(0.0001, t);
   g.gain.linearRampToValueAtTime(vol, t + 0.006);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  let out = g;
-  if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); out = p; }
-  src.connect(f); f.connect(g);
-  out.connect(dry ? au.sfx : au.verb);
+  const p = panNode(pan);
+  src.connect(f); f.connect(g); g.connect(p); p.connect(dry ? au.sfx : au.verb);
   src.start(t, Math.random() * 0.8, dur + 0.05);
+}
+function tone(freq, { type = "sine", vol = 0.2, dur = 0.8, pan = 0, when = 0, to = 0, attack = 0.005 } = {}) {
+  const ac = au.ac; if (!ac) return;
+  const t = ac.currentTime + when;
+  const o = ac.createOscillator(), g = ac.createGain(), p = panNode(pan);
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(p); p.connect(au.sfx); o.start(t); o.stop(t + dur + 0.05);
+}
+function chime(f, pan = 0, vol = 0.12, when = 0) {
+  tone(f, { vol, dur: 1.4, pan, when });
+  tone(f * 2.76, { vol: vol * 0.35, dur: 0.7, pan, when });
 }
 function footstep(z, vol = 1, pan = 0, when = 0) {
   if (z === Z.OFFICE || z === Z.DARK) {
     burst({ freq: 380, vol: 0.35 * vol, dur: 0.13, pan, when });
-    burst({ freq: 250, vol: 0.18 * vol, dur: 0.1, pan, when: when + 0.045 }); // 湿った感じ
+    burst({ freq: 250, vol: 0.18 * vol, dur: 0.1, pan, when: when + 0.045 });
   } else {
     burst({ freq: z === Z.POOL ? 2200 : 1500, type: "bandpass", q: 1.4, vol: 0.4 * vol, dur: 0.07, pan, when });
   }
 }
 function clunk(vol = 0.5) {
-  const ac = au.ac; if (!ac) return;
-  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
-  o.type = "square"; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.12);
-  g.gain.setValueAtTime(vol * 0.25, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-  o.connect(g); g.connect(au.sfx); o.start(t); o.stop(t + 0.2);
+  tone(70, { type: "square", vol: vol * 0.25, dur: 0.16, to: 38 });
   burst({ freq: 3000, type: "highpass", vol: vol * 0.3, dur: 0.03 });
 }
 function farSlam() { burst({ freq: 160, vol: 0.9, dur: 0.7, pan: Math.random() * 1.6 - 0.8, dry: false }); }
@@ -803,27 +1119,57 @@ function farSteps() {
   const pan = Math.random() < 0.5 ? -0.7 : 0.7, z = zoneHere();
   for (let i = 0; i < 7; i++) footstep(z, 0.28 * (1 - i / 9), pan, i * 0.58 + Math.random() * 0.04);
 }
+// ささやき：ノイズの帯域を音節のように揺らす
+function whisper() {
+  const ac = au.ac; if (!ac) return;
+  const t = ac.currentTime, dur = 1.2 + Math.random() * 1.2;
+  const src = ac.createBufferSource(); src.buffer = au.nb; src.loop = true;
+  const f = ac.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 7;
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t);
+  for (let s = 0; s < dur; s += 0.09) {
+    f.frequency.setValueAtTime(900 + Math.random() * 2600, t + s);
+    g.gain.linearRampToValueAtTime(Math.random() < 0.3 ? 0 : 0.12 + Math.random() * 0.18, t + s + 0.04);
+  }
+  g.gain.linearRampToValueAtTime(0, t + dur + 0.1);
+  const p = panNode(Math.random() < 0.5 ? -0.9 : 0.9);
+  src.connect(f); f.connect(g); g.connect(p); p.connect(au.sfx);
+  src.start(t); src.stop(t + dur + 0.2);
+}
+function heartbeat() {
+  tone(58, { vol: 0.35, dur: 0.18, to: 40 });
+  tone(52, { vol: 0.25, dur: 0.18, to: 36, when: 0.22 });
+}
+function tinnitus() { tone(5800, { vol: 0.025, dur: 2.6, attack: 0.05 }); }
 
 // ---------- 状態 ----------
-const st = { running: false, started: false, fade: 0, glitch: 0, t: 0, dist: 0, walkT: 0, lastEcho: -99 };
-const ev = { next: 45 + Math.random() * 25, stutter: 0, black: false, blackT: 0, blackR: 99, blackStep: 99, humCut: 0 };
-const fig = { on: false, x: 0, y: 0, t: 0, away: 0 };
+const st = { running: false, started: false, fade: 0, glitch: 0, t: 0, dist: 0, walkT: 0, lastEcho: -99, invert: 0 };
+const ev = { next: 45 + Math.random() * 25, stutter: 0, black: false, blackT: 0, blackR: 99, blackStep: 99, humCut: 0, whisper: 25, beat: 0 };
+const fig = { on: false, x: 0, y: 0, t: 0, away: 0, edge: false };
+const gs = {
+  sleep: 8, sanity: 100,
+  anchors: new Set(), notes: new Set(), picked: new Set(),
+  inv: { coffee: 0, gum: 0, drops: 0, battery: 0 },
+  hasFlash: false, flashOn: false, bat: 0,
+  dropsT: 0, pinchCD: 0, pinchLog: [], pinchN: 0,
+  door: null, doorTry: 0, pingT: 0, over: null,
+};
+const blink = { state: 0, t: 0, timer: 6, lid: 0, close: 0.2, hold: 0, open: 0.3 };
 const seenZone = new Set([Z.OFFICE]);
 const said = new Set();
 const keys = new Set();
 
 const $ = (id) => document.getElementById(id);
-function say(text, id = text) {
-  if (said.has(id)) return;
-  said.add(id);
+let msgT = 0;
+function say(text, id, dur = 4200) {
+  if (id) { if (said.has(id)) return; said.add(id); }
   const m = $("msg"); m.textContent = text; m.classList.add("on");
-  clearTimeout(say.t); say.t = setTimeout(() => m.classList.remove("on"), 4200);
+  clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove("on"), dur);
 }
 const zoneHere = () => cellAt(Math.floor(pl.x), Math.floor(pl.y)) & 3;
 
 function losClear(x0, y0, x1, y1) {
-  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 0.2);
-  for (let i = 1; i < n; i++) if (solidAt(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)) return false;
+  const d = Math.hypot(x1 - x0, y1 - y0), m = Math.ceil(d / 0.2);
+  for (let i = 1; i < m; i++) if (solidAt(x0 + (x1 - x0) * i / m, y0 + (y1 - y0) * i / m)) return false;
   return true;
 }
 function angTo(x, y) {
@@ -832,27 +1178,39 @@ function angTo(x, y) {
   while (d < -Math.PI) d += Math.PI * 2;
   return d;
 }
-// 人影：視線の先の遠くに立たせる。近づくか、目を離すと消える
-function spawnFigure() {
-  for (let tries = 0; tries < 12; tries++) {
-    const a = pl.a + (Math.random() - 0.5) * 0.5, D = 9 + Math.random() * 7;
+// 視線の先の、見通せる床のセルを探す
+function spotAhead(minD, maxD, spread) {
+  for (let tries = 0; tries < 14; tries++) {
+    const a = pl.a + (Math.random() - 0.5) * spread, D = minD + Math.random() * (maxD - minD);
     let reach = 0;
     for (let d = 0.3; d <= D; d += 0.2) { if (solidAt(pl.x + Math.cos(a) * d, pl.y + Math.sin(a) * d)) break; reach = d; }
-    if (reach < 8) continue;
-    const x = pl.x + Math.cos(a) * reach, y = pl.y + Math.sin(a) * reach;
-    const fx = Math.floor(x) + 0.5, fy = Math.floor(y) + 0.5;
+    if (reach < minD) continue;
+    const fx = Math.floor(pl.x + Math.cos(a) * reach) + 0.5, fy = Math.floor(pl.y + Math.sin(a) * reach) + 0.5;
     if (solidAt(fx, fy) || !losClear(pl.x, pl.y, fx, fy)) continue;
-    Object.assign(fig, { on: true, x: fx, y: fy, t: 0, away: 0 });
-    if (au.o1) au.o1.frequency.setTargetAtTime(57.5, au.ac.currentTime, 2);
-    return true;
+    return [fx, fy];
   }
-  return false;
+  return null;
+}
+function spawnFigure(edge) {
+  let s;
+  if (edge) {
+    // 視界のはしに立つ。見ようとすると消える
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const a = pl.a + side * (Math.atan(PL) - 0.12), D = 4 + Math.random() * 2.5;
+    const x = Math.floor(pl.x + Math.cos(a) * D) + 0.5, y = Math.floor(pl.y + Math.sin(a) * D) + 0.5;
+    if (!solidAt(x, y) && losClear(pl.x, pl.y, x, y)) s = [x, y];
+  } else s = spotAhead(8, 16, 0.5);
+  if (!s) return false;
+  Object.assign(fig, { on: true, x: s[0], y: s[1], t: 0, away: 0, edge: !!edge });
+  if (au.o1) au.o1.frequency.setTargetAtTime(57.5, au.ac.currentTime, 2);
+  return true;
 }
 function hideFigure(loud) {
   fig.on = false;
   if (au.o1) au.o1.frequency.setTargetAtTime(60, au.ac.currentTime, 0.5);
   if (loud) {
     ev.stutter = 0.9; st.glitch = 1; ev.humCut = 3.5; clunk(0.6);
+    gs.sanity -= 12;
     setTimeout(() => say("……いまのは、誰だ。", "fig"), 1400);
   }
 }
@@ -860,7 +1218,12 @@ function updateFigure(dt) {
   if (!fig.on) return;
   fig.t += dt;
   const d = Math.hypot(fig.x - pl.x, fig.y - pl.y);
-  const inView = Math.abs(angTo(fig.x, fig.y)) < Math.atan(PL) + 0.05 && losClear(pl.x, pl.y, fig.x, fig.y);
+  const a = Math.abs(angTo(fig.x, fig.y));
+  const inView = a < Math.atan(PL) + 0.05 && losClear(pl.x, pl.y, fig.x, fig.y);
+  if (fig.edge) {
+    if (a < 0.3 || fig.t > 2.2) { fig.on = false; st.glitch = 0.4; gs.sanity -= 3; whisper(); }
+    return;
+  }
   if (inView && d < 6.5) { hideFigure(true); return; }
   fig.away = inView ? 0 : fig.away + dt;
   if (fig.away > 1.2 || (fig.t > 30 && !inView)) hideFigure(false);
@@ -871,25 +1234,242 @@ function updateEvents(dt) {
   ev.stutter = Math.max(0, ev.stutter - dt);
   ev.humCut = Math.max(0, ev.humCut - dt);
   st.glitch = Math.max(0, st.glitch - dt * 1.6);
+  st.invert = Math.max(0, st.invert - dt);
   if (ev.black) {
     const e = t - ev.blackT;
     ev.blackR = e < 4 ? 22 - e * 4.8 : 2.8;
     const step = Math.floor(ev.blackR / 3);
     if (step !== ev.blackStep) { ev.blackStep = step; clunk(0.35); }
     if (e > 7.5) {
-      ev.black = false; ev.blackR = 99; clunk(0.9); st.glitch = 0.6;
+      ev.black = false; ev.blackR = 99; clunk(0.9); st.glitch = 0.6; gs.sanity -= 6;
       say("明かりが戻った。", "black");
     }
   }
   if (t > ev.next && !ev.black && !fig.on) {
     const r = Math.random();
-    if (r < 0.36) { if (!spawnFigure()) farSlam(); }
+    if (r < 0.36) { if (!spawnFigure(false)) farSlam(); }
     else if (r < 0.56) { ev.black = true; ev.blackT = t; ev.blackStep = 99; }
     else if (r < 0.7) ev.humCut = 7;
     else if (r < 0.85) farSteps();
     else farSlam();
-    ev.next = t + 35 + Math.random() * 50;
+    ev.next = t + (35 + Math.random() * 50) * (0.45 + 0.55 * gs.sanity / 100);
   }
+  // 正気が削れるほど、ささやきと視界のはしの人影が増える
+  if (gs.sanity < 70) {
+    ev.whisper -= dt;
+    if (ev.whisper < 0) { whisper(); ev.whisper = 12 + Math.random() * 25 * gs.sanity / 70; }
+  }
+  if (gs.sanity < 35 && !fig.on && Math.random() < dt * 0.05) spawnFigure(true);
+  if (gs.sanity < 20 && Math.random() < dt * 0.04) st.invert = 0.08;
+  if (gs.sleep > 75 || gs.sanity < 25) {
+    ev.beat -= dt;
+    if (ev.beat < 0) { heartbeat(); ev.beat = 0.95 - Math.min(0.35, (gs.sleep - 75) / 80); }
+  }
+}
+
+// ---------- 眠気と正気 ----------
+function updateSleep(dt, moving, running, z) {
+  if (gs.over) return;
+  let rate = 100 / 360;
+  rate *= [1, 1, 0.9, 1.7][z];
+  rate *= moving ? (running ? 0.85 : 1) : 1.55;
+  if (gs.sanity < 30) rate *= 1.35;
+  if (gs.dropsT > 0) rate *= 0.45;
+  rate *= 1 - 0.06 * gs.anchors.size;
+  if (ev.black) rate *= 2;
+  gs.sleep = clamp(gs.sleep + rate * dt, 0, 100);
+  gs.dropsT = Math.max(0, gs.dropsT - dt);
+  gs.pinchCD = Math.max(0, gs.pinchCD - dt);
+  const L = lightAt(pl.x, pl.y);
+  if (L > 0.85 && z !== Z.DARK && !fig.on) gs.sanity += 0.12 * dt;
+  gs.sanity = clamp(gs.sanity, 0, 100);
+
+  // まばたき。眠いほど長く閉じ、閉じているあいだ体は勝手に歩く
+  const d = gs.sleep / 100;
+  if (blink.state === 0) {
+    blink.timer -= dt;
+    if (blink.timer <= 0 && d > 0.42) {
+      Object.assign(blink, { state: 1, t: 0, close: 0.12 + d * 0.5, hold: d > 0.72 ? (d - 0.72) * 4.5 : 0.04, open: 0.25 + d * 0.4 });
+    }
+  } else {
+    blink.t += dt;
+    const { close, hold, open } = blink, t = blink.t;
+    if (t < close) blink.lid = t / close;
+    else if (t < close + hold) {
+      blink.lid = 1;
+      pl.a += Math.sin(st.t * 0.7) * 0.5 * dt;
+      tryMove(pl.x + Math.cos(pl.a) * 0.35 * dt, pl.y + Math.sin(pl.a) * 0.35 * dt);
+      gs.sleep = Math.min(100, gs.sleep + 1.2 * dt);
+    } else if (t < close + hold + open) blink.lid = 1 - (t - close - hold) / open;
+    else {
+      blink.state = 0; blink.lid = 0;
+      blink.timer = (9 - 6.5 * smooth(0.42, 1, d)) * (0.7 + Math.random() * 0.6);
+    }
+  }
+  if (gs.sleep >= 100) endGame("assim");
+
+  if (d > 0.5) say("まぶたが重い。立ち止まると、もっと重くなる。", "s50");
+  if (d > 0.75) say("立ったまま眠りそうだ。［Q］で自分をつねれば、少しは……", "s75", 5200);
+  if (d > 0.9) say("壁の模様が、呼吸している。", "s90");
+  if (gs.sanity < 62) say("壁に何か書いてある。さっきまでなかった。", "m60");
+  if (gs.sanity < 40) say("色のあるものが、本物とは限らない。", "m40");
+  if (gs.sanity < 20) say("自分の名前が、思い出せない。", "m20");
+}
+
+function openEyes() { if (blink.state) { blink.state = 0; blink.lid = 0; blink.timer = 3; } }
+const PINCH_LINES = [
+  "手の甲をつねった。痛みで、少しだけ目が覚める。",
+  "腕に爪を立てた。赤い跡が残る。痛いのは、まだ起きている証拠だ。",
+  "唇を噛んだ。痛みだけが、現実の手ざわりをしている。",
+  "太ももを強くつねった。景色の輪郭が、一瞬だけ戻る。",
+];
+function pinch() {
+  if (gs.over || !st.running || gs.pinchCD > 0) return;
+  const t = st.t;
+  gs.pinchLog = gs.pinchLog.filter(v => t - v < 60);
+  const k = Math.pow(0.6, gs.pinchLog.length);
+  gs.pinchLog.push(t); gs.pinchN++;
+  gs.sleep = Math.max(0, gs.sleep - 18 * k);
+  gs.sanity = Math.max(0, gs.sanity - 9);
+  gs.pinchCD = 5;
+  openEyes();
+  const p = $("pain"); p.style.transition = "none"; p.style.opacity = 0.9;
+  requestAnimationFrame(() => { p.style.transition = "opacity 1.4s ease-out"; p.style.opacity = 0; });
+  st.glitch = 0.5;
+  burst({ freq: 900, type: "bandpass", q: 2, vol: 0.35, dur: 0.06 });
+  tinnitus();
+  let line;
+  if (k < 0.3) line = "もう、痛みにも慣れてしまった。";
+  else if (gs.sanity < 30) line = "痛い。痛い。まだ痛い。だから、まだ大丈夫。";
+  else if (gs.pinchN === 8) line = "腕のつねり跡を数えた。八つ。数えるたびに増えている。";
+  else line = PINCH_LINES[(gs.pinchN - 1) % PINCH_LINES.length];
+  say(line);
+}
+function useItem(kind) {
+  if (gs.over || !st.running) return;
+  if (kind === "flash") {
+    if (!gs.hasFlash) return;
+    if (gs.bat <= 0 && gs.inv.battery > 0) { gs.inv.battery--; gs.bat = 90; }
+    if (gs.bat <= 0) { say("電池が切れている。"); return; }
+    gs.flashOn = !gs.flashOn;
+    burst({ freq: 2500, type: "bandpass", q: 3, vol: 0.25, dur: 0.03 });
+    refreshInv(); return;
+  }
+  if (!gs.inv[kind]) return;
+  if (kind === "battery") return;
+  gs.inv[kind]--;
+  if (kind === "coffee") { gs.sleep = Math.max(0, gs.sleep - 30); say("缶コーヒーを飲んだ。ぬるい。でも、苦い。"); burst({ freq: 700, vol: 0.3, dur: 0.25 }); }
+  if (kind === "gum") { gs.sleep = Math.max(0, gs.sleep - 12); say("ミントガムを噛んだ。鼻の奥がすっとする。"); }
+  if (kind === "drops") { gs.dropsT = 60; gs.sleep = Math.max(0, gs.sleep - 5); say("目薬をさした。視界の輪郭がはっきりする。"); tone(2400, { vol: 0.06, dur: 0.4 }); }
+  openEyes();
+  refreshInv();
+}
+
+// ---------- 拾う ----------
+const NOTES = [
+  "ここでは腹が減らない。\nそのかわり、ずっと眠い。",
+  "眠ったら終わりだ。\n壁のしみを見ろ。あれは人の形をしている。",
+  "現実から持ちこんだものは、色が残る。\n色のあるものを拾え。",
+  "錨は七つ。\nそろえば帰れると、前の誰かが書いていた。\nその誰かは、帰れなかったらしい。",
+  "非常口に入ろうとした。\n壁だった。",
+  "立ち止まると眠くなる。\n歩け。歩け。歩け。",
+  "暗い区画には長くいるな。眠気が倍になる。\nでも、異物は暗いところに多い。",
+  "あの人影は、たぶん、眠ってしまった人たちだ。\nこちらを見ているのではない。\nこちらを、うらやましがっている。",
+  "今日で何日目だろう。\n時計は進んでいるのに、夜が明けない。",
+  "椅子には座るな。\n座った人は、そのまま椅子になった。",
+  "プールの水は、ない。\nタイルだけが水色だ。\n泳いでいる音だけが、聞こえる。",
+  "痛みは効く。でも、だんだん効かなくなる。\n腕がもう、自分のものじゃないみたいだ。",
+  "壁に書いてある文字は、ぜんぶ自分の字だった。",
+  "光っている異物に手をのばしたら、消えた。\n笑い声がした。自分の声だった。",
+];
+function readNote(i) {
+  gs.notes.add(i);
+  const mad = gs.sanity < 35 && Math.random() < 0.45;
+  $("noteNo").textContent = `メモ ${String(i + 1).padStart(2, "0")} ／ ${NOTES.length}`;
+  $("noteText").textContent = mad ? Array.from({ length: 5 }, () => "ねむい ねむい ねむい ねむい").join("\n") : NOTES[i];
+  $("note").classList.toggle("mad", mad);
+  $("note").hidden = false;
+  clearTimeout(readNote.t); readNote.t = setTimeout(() => { $("note").hidden = true; }, 8500);
+  burst({ freq: 3200, type: "highpass", vol: 0.12, dur: 0.12 });
+  if (i >= 11) gs.sanity -= 3;
+}
+function pickUp(it) {
+  gs.picked.add(it.id);
+  if (it.kind === "fake") {
+    st.glitch = 0.8; gs.sanity -= 6; whisper();
+    say("手をのばすと、ほどけて消えた。\n最初から何もなかった。");
+    return;
+  }
+  if (it.kind === "note") { readNote(it.n); return; }
+  if (it.kind === "flash") {
+    gs.hasFlash = true; gs.bat = 90;
+    say("懐中電灯を拾った。［F］でつける。\n乾電池は、どこかに落ちているはずだ。", null, 5500);
+    chime(1320, 0, 0.08); refreshInv(); return;
+  }
+  if (it.kind === "anchor") {
+    const a = it.a;
+    gs.anchors.add(a.id);
+    gs.sleep = Math.max(0, gs.sleep - 25);
+    gs.sanity = Math.min(100, gs.sanity + 10);
+    openEyes();
+    st.glitch = 0.35;
+    [1, 1.26, 1.5, 2].forEach((m, i) => chime(a.pitch * m, 0, 0.1, i * 0.12));
+    say(`〈${a.name}〉\n${a.text}`, null, 6000);
+    refreshAnchors();
+    if (gs.anchors.size === ANCHORS.length) {
+      setTimeout(() => say("七つの異物がそろった。\nどこかで、玄関の開く音がした。", null, 6000), 6200);
+    }
+    return;
+  }
+  gs.inv[it.kind]++;
+  say(`${SUPPLIES[it.kind].name}を拾った。\n${SUPPLIES[it.kind].text}`);
+  chime(1046, 0, 0.06);
+  refreshInv();
+}
+function checkPickups() {
+  const r0x = Math.floor((pl.x - 2) / P), r1x = Math.floor((pl.x + 2) / P);
+  const r0y = Math.floor((pl.y - 2) / P), r1y = Math.floor((pl.y + 2) / P);
+  for (let ry = r0y; ry <= r1y; ry++) for (let rx = r0x; rx <= r1x; rx++) {
+    const it = itemOfRoom(rx, ry);
+    if (!it) continue;
+    const d = Math.hypot(it.x - pl.x, it.y - pl.y);
+    if (d < (it.kind === "fake" ? 2.2 : 0.75)) pickUp(it);
+  }
+  if (gs.door && Math.hypot(gs.door.x - pl.x, gs.door.y - pl.y) < 0.8) endGame("wake");
+}
+// 近くの異物が鳴らす「呼ぶ音」と、画面上の気配
+function nearestCall() {
+  let best = null, bd = 14;
+  if (gs.door) { const d = Math.hypot(gs.door.x - pl.x, gs.door.y - pl.y); return { x: gs.door.x, y: gs.door.y, d, pitch: 392 }; }
+  const r0x = Math.floor((pl.x - 14) / P), r1x = Math.floor((pl.x + 14) / P);
+  const r0y = Math.floor((pl.y - 14) / P), r1y = Math.floor((pl.y + 14) / P);
+  for (let ry = r0y; ry <= r1y; ry++) for (let rx = r0x; rx <= r1x; rx++) {
+    const it = itemOfRoom(rx, ry);
+    if (!it || (it.kind !== "anchor" && it.kind !== "fake")) continue;
+    const d = Math.hypot(it.x - pl.x, it.y - pl.y);
+    if (d < bd) { bd = d; best = { x: it.x, y: it.y, d, pitch: it.a.pitch }; }
+  }
+  return best;
+}
+function updateCall(dt) {
+  const c = nearestCall(), el = $("sense");
+  if (!c) { el.style.opacity = 0; return; }
+  const a = angTo(c.x, c.y);
+  el.textContent = Math.abs(a) < 0.3 ? "▲ 気配 ▲" : a < 0 ? "◀ 気配" : "気配 ▶";
+  el.style.opacity = (0.25 + 0.6 * (1 - c.d / 14)).toFixed(2);
+  gs.pingT -= dt;
+  if (gs.pingT < 0) {
+    gs.pingT = gs.door ? 1.6 : 2.4;
+    chime(c.pitch, clamp(Math.sin(a) * 1.2, -1, 1), 0.02 + 0.1 * (1 - c.d / 14));
+  }
+}
+function updateDoor(dt) {
+  if (gs.anchors.size < ANCHORS.length || gs.door) return;
+  gs.doorTry -= dt;
+  if (gs.doorTry > 0) return;
+  gs.doorTry = 0.5;
+  const s = spotAhead(6, 12, 0.8);
+  if (s) { gs.door = { x: s[0], y: s[1] }; say("光が漏れている。\nあれは、うちの玄関だ。", null, 5000); }
 }
 
 function tryMove(nx, ny) {
@@ -899,88 +1479,234 @@ function tryMove(nx, ny) {
   if (!hit(pl.x, ny)) pl.y = ny;
 }
 
+// ---------- 終わり ----------
+function endGame(type) {
+  if (gs.over) return;
+  gs.over = { type, t: 0 };
+  keys.clear(); touch.walk = false;
+  $("note").hidden = true;
+  if (type === "assim") {
+    blink.state = 0;
+    if (au.ac) { au.hum.gain.setTargetAtTime(0.18, au.ac.currentTime, 1.5); au.o1.frequency.setTargetAtTime(45, au.ac.currentTime, 2); }
+  } else {
+    $("white").style.opacity = 1;
+    [523, 659, 784, 1046, 1318].forEach((f, i) => chime(f, 0, 0.1, i * 0.25));
+  }
+}
+function updateEnding(dt) {
+  const o = gs.over; o.t += dt;
+  if (o.type === "assim") {
+    blink.lid = Math.min(1, o.t / 3.2);
+    pl.camZ = Math.max(0.03, pl.camZ - dt * 0.14);
+    pl.pitch = Math.max(-30, pl.pitch - dt * 8);
+  }
+  if (o.t > 3.6 && !o.shown) { o.shown = true; showEnding(o.type); }
+}
+function showEnding(type) {
+  const ov = $("overlay");
+  ov.className = "overlay end-" + type;
+  const mm = Math.floor(st.t / 60), ss = Math.floor(st.t % 60);
+  if (type === "assim") {
+    $("ovTitle").textContent = "同化";
+    $("ovSub").textContent = "ASSIMILATED";
+    $("ovLore").innerHTML = "まぶたが落ちた。<br>湿ったカーペットが、背中から体の中へしみこんでくる。<br>あなたは、ハザマの一部になった。<br>いつか誰かが、壁に人の形をしたしみを見つけるだろう。";
+  } else {
+    $("ovTitle").textContent = "覚醒";
+    $("ovSub").textContent = "AWAKE";
+    $("ovLore").innerHTML = "ドアを開けると、光がすべてを塗りつぶした。<br>……目が覚めた。終電の車内。窓の外が白んでいる。<br>ポケットの中で、風鈴がちりんと鳴った。";
+  }
+  $("go").textContent = "もう一度ハザマへ";
+  $("keys").innerHTML = `<span class="stats">
+    <span><small>経過</small>${mm}分${String(ss).padStart(2, "0")}秒</span>
+    <span><small>歩いた距離</small>${Math.floor(st.dist * 1.5)}m</span>
+    <span><small>異物</small>${gs.anchors.size} / 7</span>
+    <span><small>メモ</small>${gs.notes.size} / ${NOTES.length}</span>
+    <span><small>つねった回数</small>${gs.pinchN}</span></span>`;
+  ov.hidden = false;
+  $("hud").hidden = true;
+  if (document.pointerLockElement) document.exitPointerLock();
+  st.running = false;
+}
+
+// ---------- 更新 ----------
 const touch = { id: null, x: 0, y: 0, walk: false };
 function update(dt) {
   st.t += dt;
   const t = st.t;
   st.fade = Math.min(1, st.fade + dt / 2.6);
-  // 入った直後は少し上から落ちてくる（壁をすり抜けて落ちた感じ）
   const fall = Math.max(0, 1 - t / 1.1);
   let fwd = 0, strafe = 0, turn = 0;
-  if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
-  if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
-  if (keys.has("KeyA")) strafe -= 1;
-  if (keys.has("KeyD")) strafe += 1;
-  if (keys.has("ArrowLeft")) turn -= 1;
-  if (keys.has("ArrowRight")) turn += 1;
-  if (touch.walk) fwd = 1;
+  if (!gs.over) {
+    if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
+    if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
+    if (keys.has("KeyA")) strafe -= 1;
+    if (keys.has("KeyD")) strafe += 1;
+    if (keys.has("ArrowLeft")) turn -= 1;
+    if (keys.has("ArrowRight")) turn += 1;
+    if (touch.walk) fwd = 1;
+  }
+  if (blink.lid >= 1) { fwd = 0; strafe = 0; turn = 0; }
   pl.a += turn * 1.9 * dt;
   const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
-  const sp = (run ? 2.7 : 1.55) * dt;
+  const d = gs.sleep / 100;
+  const sp = (run ? 2.7 : 1.55) * (1 - 0.4 * Math.max(0, d - 0.3)) * dt;
   const len = Math.hypot(fwd, strafe) || 1;
   const cx = Math.cos(pl.a), sy = Math.sin(pl.a);
-  const mvx = (cx * fwd - sy * strafe) / len * sp, mvy = (sy * fwd + cx * strafe) / len * sp;
   const ox0 = pl.x, oy0 = pl.y;
-  if (fwd || strafe) tryMove(pl.x + mvx, pl.y + mvy);
+  if (fwd || strafe) tryMove(pl.x + (cx * fwd - sy * strafe) / len * sp, pl.y + (sy * fwd + cx * strafe) / len * sp);
   const moved = Math.hypot(pl.x - ox0, pl.y - oy0);
   st.dist += moved;
   const z = zoneHere();
-  if (moved > 0.0005) {
+  const moving = moved > 0.0005;
+  if (moving) {
     st.walkT += dt;
     const before = Math.floor(pl.bob / Math.PI);
     pl.bob += moved * (run ? 4.2 : 5.4);
     if (Math.floor(pl.bob / Math.PI) !== before) footstep(z, run ? 1.2 : 0.9);
   } else {
-    // 立ち止まると、足音が少しだけ遅れてついてくることがある
     if (st.walkT > 3 && t > 30 && t - st.lastEcho > 40 && Math.random() < 0.22) {
       st.lastEcho = t;
       footstep(z, 0.55, -0.15, 0.38); footstep(z, 0.45, -0.1, 0.95);
     }
     st.walkT = 0;
   }
-  pl.camZ = 0.48 + 0.014 * Math.abs(Math.sin(pl.bob)) + fall * 0.42;
+  if (!gs.over) {
+    // 眠いと頭が揺れ、ときどきかくんと落ちる
+    const nod = Math.max(0, d - 0.6) * 10 * Math.pow(Math.max(0, Math.sin(t * 0.37)), 12);
+    pl.camZ = 0.48 + 0.014 * Math.abs(Math.sin(pl.bob)) + fall * 0.42;
+    pl.pitchOff = Math.sin(t * 0.9) * Math.max(0, d - 0.5) * 6 - nod;
+  }
 
   if (!seenZone.has(z)) {
     seenZone.add(z);
-    say(["", "排気ガスの匂いがする。", "塩素の匂いがする。水の音はしない。", "この区画には電気が来ていない。"][z], "z" + z);
+    say(["", "排気ガスの匂いがする。", "塩素の匂いがする。水の音はしない。", "この区画には電気が来ていない。眠気が、濃い。"][z], "z" + z);
   }
-  const m = st.dist * 1.5;
-  if (t > 5) say("蛍光灯の音しかしない。", "hum");
-  if (m > 260) say("同じ部屋を、もう何度も通った気がする。", "loop");
-  if (m > 700) say("非常口の表示は、どこにもつながっていない。", "exit");
+  if (t > 5) say("お腹は空かない。ただ、ひどく眠い。\n床に何か落ちている。", "intro", 5000);
+  if (st.dist * 1.5 > 260) say("同じ部屋を、もう何度も通った気がする。", "loop");
 
+  // 懐中電灯
+  if (gs.flashOn) {
+    gs.bat -= dt;
+    if (gs.bat <= 0) {
+      if (gs.inv.battery > 0) { gs.inv.battery--; gs.bat = 90; say("乾電池を入れかえた。"); }
+      else { gs.flashOn = false; say("懐中電灯が消えた。電池切れだ。"); }
+      refreshInv();
+    }
+  }
+  FL = gs.flashOn ? 1.15 * (gs.bat < 10 && Math.sin(t * 31) * Math.sin(t * 7) > 0.3 ? 0.2 : 1) : 0;
+
+  updateSleep(dt, moving, run, z);
   updateEvents(dt);
   updateFigure(dt);
+  updateDoor(dt);
+  if (!gs.over) checkPickups();
+  else updateEnding(dt);
+  updateDust(dt);
   refreshGrid(pl.x, pl.y);
   updateLamps(t);
+  updateCall(dt);
 
   if (au.ac) {
     const now = au.ac.currentTime;
     const L = Math.min(1.4, lightAt(pl.x, pl.y));
     const zm = [1, 0.7, 0.55, 1][z];
-    au.hum.gain.setTargetAtTime(ev.humCut > 0 ? 0 : 0.07 * L * zm, now, ev.humCut > 0 ? 0.02 : 0.3);
-    au.wet.gain.setTargetAtTime([0.14, 0.45, 0.6, 0.22][z], now, 0.8);
+    if (!gs.over) au.hum.gain.setTargetAtTime(ev.humCut > 0 ? 0 : (0.07 + d * 0.05) * L * zm, now, ev.humCut > 0 ? 0.02 : 0.3);
+    au.wet.gain.setTargetAtTime([0.14, 0.45, 0.6, 0.22][z] + d * 0.3, now, 0.8);
+    au.lp.frequency.setTargetAtTime(700 + 13300 * Math.pow(1 - d, 2.2) * (blink.lid > 0.95 ? 0.15 : 1), now, 0.25);
   }
 }
 
 // ---------- HUD ----------
+function drawIcon(c, spr, gray) {
+  const s = Math.max(spr.w, spr.h);
+  c.width = c.height = s;
+  const g = c.getContext("2d"), im = g.createImageData(s, s), u = new Uint32Array(im.data.buffer);
+  const ox2 = (s - spr.w) >> 1, oy2 = (s - spr.h) >> 1;
+  for (let y = 0; y < spr.h; y++) for (let x = 0; x < spr.w; x++) {
+    const k = y * spr.w + x;
+    if (!spr.a[k]) continue;
+    const idx = clamp(Math.round(spr.b[k] * 14), 0, 15);
+    u[(y + oy2) * s + x + ox2] = gray ? COLS[(RP.PLASTIC) * 16 + clamp(idx - 5, 1, 15)] : COLS[spr.r[k] * 16 + idx];
+  }
+  g.putImageData(im, 0, 0);
+}
+function refreshAnchors() {
+  const box = $("anchors");
+  if (!box.children.length) ANCHORS.forEach(a => { const c = document.createElement("canvas"); c.title = a.name; box.appendChild(c); });
+  ANCHORS.forEach((a, i) => {
+    const c = box.children[i], got = gs.anchors.has(a.id);
+    drawIcon(c, a.spr, !got); c.classList.toggle("got", got);
+  });
+  $("anchorsLabel").textContent = `異物 ${gs.anchors.size} / 7`;
+}
+const INV = [
+  { kind: "coffee", key: "1", spr: SPR.coffee },
+  { kind: "gum", key: "2", spr: SPR.gum },
+  { kind: "drops", key: "3", spr: SPR.drops },
+  { kind: "flash", key: "F", spr: SPR.flash },
+  { kind: "pinch", key: "Q" },
+];
+function buildInv() {
+  const box = $("inv");
+  INV.forEach(s => {
+    const b = document.createElement("button");
+    b.type = "button"; b.id = "inv-" + s.kind;
+    if (s.spr) { const c = document.createElement("canvas"); drawIcon(c, s.spr, false); b.appendChild(c); }
+    else { const e = document.createElement("span"); e.textContent = "つねる"; e.style.height = "calc(var(--u) * 14)"; e.style.display = "grid"; e.style.placeItems = "center"; b.appendChild(e); }
+    const lab = document.createElement("span"); lab.className = "cnt"; b.appendChild(lab);
+    if (s.kind === "flash") { const bat = document.createElement("span"); bat.className = "bat"; bat.innerHTML = "<i></i>"; b.appendChild(bat); }
+    b.addEventListener("click", (e) => { e.stopPropagation(); s.kind === "pinch" ? pinch() : useItem(s.kind); });
+    box.appendChild(b);
+  });
+  refreshInv();
+}
+function refreshInv() {
+  INV.forEach(s => {
+    const b = $("inv-" + s.kind), lab = b.querySelector(".cnt");
+    if (s.kind === "pinch") { lab.innerHTML = `<kbd>Q</kbd>`; return; }
+    if (s.kind === "flash") {
+      b.disabled = !gs.hasFlash; b.classList.toggle("on", gs.flashOn);
+      lab.innerHTML = `<kbd>F</kbd> 電池${gs.inv.battery}`;
+      b.querySelector(".bat i").style.width = clamp(gs.bat / 90 * 100, 0, 100) + "%";
+      return;
+    }
+    b.disabled = gs.inv[s.kind] === 0;
+    lab.innerHTML = `<kbd>${s.key}</kbd> ×${gs.inv[s.kind]}`;
+  });
+}
+const GLITCH_CH = "ねむいおきろここどこだれまだ";
 let hudT = 0;
 function updateHud(dt) {
-  hudT -= dt; if (hudT > 0) return; hudT = 0.25;
+  hudT -= dt; if (hudT > 0) return; hudT = 0.2;
   const s = 3 * 3600 + 14 * 60 + Math.floor(st.t);
   const hh = Math.floor(s / 3600) % 12 || 12, mm = Math.floor(s / 60) % 60, ss = s % 60;
   $("clock").textContent = `AM ${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   $("dist").textContent = Math.floor(st.dist * 1.5);
-  $("zone").textContent = ZONE_NAME[zoneHere()];
+  let zn = ZONE_NAME[zoneHere()];
+  if (gs.sanity < 50 && Math.random() < (50 - gs.sanity) / 80) zn = zn.split("").map(c => Math.random() < 0.4 ? GLITCH_CH[(Math.random() * GLITCH_CH.length) | 0] : c).join("");
+  $("zone").textContent = zn;
+  $("sleepBar").style.width = gs.sleep.toFixed(1) + "%";
+  $("sanBar").style.width = gs.sanity.toFixed(1) + "%";
+  $("sleepM").classList.toggle("warn", gs.sleep > 80);
+  $("sanM").classList.toggle("warn", gs.sanity < 25);
+  if (gs.flashOn) $("inv-flash").querySelector(".bat i").style.width = clamp(gs.bat / 90 * 100, 0, 100) + "%";
+  $("inv-pinch").disabled = gs.pinchCD > 0;
+  $("hud").style.filter = gs.sleep > 70 ? `blur(${((gs.sleep - 70) / 30 * 1.2).toFixed(2)}px)` : "";
 }
 
 // ---------- ループ ----------
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (st.running) { update(dt); updateHud(dt); }
-  else if (!st.started) { st.t += dt * 0.25; pl.a += dt * 0.05; refreshGrid(pl.x, pl.y); updateLamps(st.t); st.fade = 0.55; }
+  if (st.running || gs.over) {
+    update(dt); updateHud(dt);
+    pl.pitchDraw = pl.pitch + (pl.pitchOff || 0);
+  } else if (!st.started) {
+    st.t += dt * 0.25; pl.a += dt * 0.05; refreshGrid(pl.x, pl.y); updateLamps(st.t); updateDust(dt * 0.25); st.fade = 0.55;
+  }
+  const p0 = pl.pitch; pl.pitch = pl.pitchDraw ?? pl.pitch;
   render(st.t);
+  pl.pitch = p0;
   requestAnimationFrame(frame);
 }
 
@@ -996,15 +1722,15 @@ addEventListener("resize", fit); fit();
 let lockedOnce = false;
 const hasLock = "requestPointerLock" in cvs && matchMedia("(pointer: fine)").matches;
 function start() {
+  if (gs.over) { location.reload(); return; }
   initAudio();
   if (!st.started) {
     st.started = true; st.t = 0; st.fade = 0; st.glitch = 1.2;
     pl.a = 0.35; pl.pitch = 0;
-    setTimeout(() => { burst({ freq: 200, vol: 0.9, dur: 0.35 }); }, 900);
+    setTimeout(() => burst({ freq: 200, vol: 0.9, dur: 0.35 }), 900);
   }
   $("hud").hidden = false;
   if (!hasLock) { resume(); return; }
-  // ポインタロックが使えない環境（埋め込み表示など）では、ドラッグで見回す
   try {
     const r = cvs.requestPointerLock();
     if (r && r.catch) r.catch(() => resume());
@@ -1013,7 +1739,9 @@ function start() {
 }
 function resume() { st.running = true; $("overlay").hidden = true; last = performance.now(); if (au.ac) au.ac.resume(); }
 function pause() {
+  if (gs.over) return;
   st.running = false; keys.clear();
+  $("ovLore").hidden = true;
   $("overlay").hidden = false;
   $("go").textContent = "クリックして戻る";
   if (au.ac) au.ac.suspend();
@@ -1023,16 +1751,22 @@ document.addEventListener("pointerlockchange", () => {
   if (document.pointerLockElement === cvs) resume(); else if (st.running && lockedOnce) pause();
   if (document.pointerLockElement === cvs) lockedOnce = true;
 });
-cvs.addEventListener("click", () => { if (st.started && !st.running) start(); });
+cvs.addEventListener("click", () => { if (st.started && !st.running && !gs.over) start(); });
 addEventListener("mousemove", (e) => {
-  if (!st.running) return;
+  if (!st.running || gs.over) return;
   if (document.pointerLockElement !== cvs && !(e.buttons & 1)) return;
   pl.a += e.movementX * 0.0024;
-  pl.pitch = Math.max(-48, Math.min(48, pl.pitch - e.movementY * 0.25));
+  pl.pitch = clamp(pl.pitch - e.movementY * 0.25, -48, 48);
 });
 addEventListener("keydown", (e) => {
   if (!st.running) return;
   keys.add(e.code);
+  if (e.code === "Digit1") useItem("coffee");
+  if (e.code === "Digit2") useItem("gum");
+  if (e.code === "Digit3") useItem("drops");
+  if (e.code === "KeyF") useItem("flash");
+  if (e.code === "KeyQ") pinch();
+  if (e.code === "KeyE") $("note").hidden = true;
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
@@ -1041,12 +1775,13 @@ cvs.addEventListener("touchstart", (e) => {
   if (!st.running) return;
   const t = e.changedTouches[0];
   Object.assign(touch, { id: t.identifier, x: t.clientX, y: t.clientY, walk: true });
+  $("note").hidden = true;
   e.preventDefault();
 }, { passive: false });
 cvs.addEventListener("touchmove", (e) => {
   for (const t of e.changedTouches) if (t.identifier === touch.id) {
     pl.a += (t.clientX - touch.x) * 0.006;
-    pl.pitch = Math.max(-40, Math.min(40, pl.pitch - (t.clientY - touch.y) * 0.3));
+    pl.pitch = clamp(pl.pitch - (t.clientY - touch.y) * 0.3, -40, 40);
     touch.x = t.clientX; touch.y = t.clientY;
   }
   e.preventDefault();
@@ -1054,8 +1789,10 @@ cvs.addEventListener("touchmove", (e) => {
 cvs.addEventListener("touchend", (e) => {
   for (const t of e.changedTouches) if (t.identifier === touch.id) { touch.walk = false; touch.id = null; }
 });
-if (!hasLock) $("keys").innerHTML = "押しているあいだ前へ歩く・なぞって向きを変える<br>ヘッドホン推奨";
+if (!hasLock) $("keys").innerHTML = "押しているあいだ前へ歩く・なぞって向きを変える<br>右下のボタンで物資を使う・つねる<br>ヘッドホン推奨";
 
+buildInv();
+refreshAnchors();
 refreshGrid(pl.x, pl.y);
 requestAnimationFrame(frame);
 </script>
