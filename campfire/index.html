@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>焚火の夜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #030409;
+    --text: #efe3cf;
+    --muted: #a3927b;
+    --ember: #ff9a4a;
+    --panel: rgba(12, 10, 10, 0.72);
+    --line: rgba(255, 190, 130, 0.18);
+    --serif: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  body.idle, body.idle canvas { cursor: none; }
+
+  /* ---- はじまりの画面 ---- */
+  .intro {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    background: radial-gradient(ellipse at 50% 70%, rgba(3,4,9,0.35), rgba(3,4,9,0.82) 70%);
+    transition: opacity 2.4s ease;
+    cursor: pointer;
+    padding: 16px;
+    text-align: center;
+  }
+  .intro.gone { opacity: 0; pointer-events: none; }
+  .intro h1 {
+    margin: 0 0 0.6em;
+    font-weight: 400;
+    font-size: clamp(34px, 7vw, 64px);
+    letter-spacing: 0.5em;
+    padding-left: 0.5em;
+    text-shadow: 0 0 24px rgba(255, 140, 60, 0.45);
+  }
+  .intro p { margin: 0.3em 0; color: var(--muted); font-size: clamp(13px, 2.4vw, 16px); letter-spacing: 0.12em; }
+  .intro .begin {
+    margin-top: 2.2em;
+    color: var(--text);
+    font-size: clamp(14px, 2.6vw, 17px);
+    letter-spacing: 0.3em;
+    animation: breathe 3.6s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+  /* ---- 操作ボタン（しばらく動かさないと消える） ---- */
+  .controls {
+    position: fixed;
+    top: max(14px, env(safe-area-inset-top));
+    right: max(14px, env(safe-area-inset-right));
+    display: flex; gap: 8px;
+    transition: opacity 1.2s ease;
+  }
+  body.idle .controls, body.idle .mixer { opacity: 0; pointer-events: none; }
+  .controls button {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    padding: 0;
+  }
+  .controls button:hover { border-color: rgba(255, 190, 130, 0.45); }
+  .controls button[aria-pressed="true"] { color: var(--ember); }
+  .controls svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  .mixer {
+    position: fixed;
+    top: calc(max(14px, env(safe-area-inset-top)) + 52px);
+    right: max(14px, env(safe-area-inset-right));
+    width: min(240px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 14px 16px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    transition: opacity 1.2s ease;
+    font-size: 14px;
+  }
+  .mixer label { display: grid; grid-template-columns: 3.2em 1fr; align-items: center; gap: 10px; margin-bottom: 8px; color: var(--muted); letter-spacing: 0.1em; }
+  .mixer input[type=range] { width: 100%; accent-color: var(--ember); }
+  .hint {
+    position: fixed; left: 0; right: 0;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    opacity: 0;
+    transition: opacity 2s ease;
+    pointer-events: none;
+  }
+  .hint.show { opacity: 0.7; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="夜の森で燃える焚火"></canvas>
+
+<div class="intro" id="intro" role="button" tabindex="0" aria-label="夜をはじめる">
+  <div>
+    <h1>焚火</h1>
+    <p>虫の声、川のせせらぎ、風の音。</p>
+    <p>ぱちぱちと燃える火を、ただ眺める夜。</p>
+    <p class="begin">クリックして夜をはじめる</p>
+    <p style="margin-top:1.6em;font-size:12px;opacity:.7">ヘッドホン推奨</p>
+  </div>
+</div>
+
+<div class="controls" id="controls" hidden>
+  <button id="btnSound" aria-pressed="true" aria-label="音のオン・オフ" title="音">
+    <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path id="waves" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"/></svg>
+  </button>
+  <button id="btnMix" aria-pressed="false" aria-label="音量の調整" title="音量">
+    <svg viewBox="0 0 24 24"><path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="14" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="15" r="2"/></svg>
+  </button>
+  <button id="btnFull" aria-label="全画面" title="全画面">
+    <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</div>
+
+<div class="mixer" id="mixer" hidden>
+  <label>焚火<input type="range" min="0" max="1" step="0.01" value="1" data-bus="fire"></label>
+  <label>虫<input type="range" min="0" max="1" step="0.01" value="1" data-bus="bugs"></label>
+  <label>川<input type="range" min="0" max="1" step="0.01" value="1" data-bus="river"></label>
+  <label>風<input type="range" min="0" max="1" step="0.01" value="1" data-bus="wind"></label>
+</div>
+
+<div class="hint" id="hint">クリックで火をつつく</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   乱数とノイズ
+   ========================================================= */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = Math.random;
+const rr = (a, b) => a + (b - a) * rand();
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+function gauss() { return (rand() + rand() + rand() + rand() - 2) / 2; } // だいたい -1..1
+
+// 3D シンプレックスノイズ
+const noise3 = (() => {
+  const g = new Float32Array([1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1]);
+  const r = mulberry32(20260924);
+  const p = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) p[i] = i;
+  for (let i = 255; i > 0; i--) { const j = (r() * (i + 1)) | 0; const t = p[i]; p[i] = p[j]; p[j] = t; }
+  const perm = new Uint8Array(512), pm = new Uint8Array(512);
+  for (let i = 0; i < 512; i++) { perm[i] = p[i & 255]; pm[i] = perm[i] % 12; }
+  const F3 = 1 / 3, G3 = 1 / 6;
+  return function (x, y, z) {
+    const s = (x + y + z) * F3;
+    const i = Math.floor(x + s), j = Math.floor(y + s), k = Math.floor(z + s);
+    const t = (i + j + k) * G3;
+    const x0 = x - (i - t), y0 = y - (j - t), z0 = z - (k - t);
+    let i1, j1, k1, i2, j2, k2;
+    if (x0 >= y0) {
+      if (y0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+      else if (x0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
+      else { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
+    } else {
+      if (y0 < z0) { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
+      else if (x0 < z0) { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
+      else { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+    }
+    const x1 = x0 - i1 + G3, y1 = y0 - j1 + G3, z1 = z0 - k1 + G3;
+    const x2 = x0 - i2 + 2 * G3, y2 = y0 - j2 + 2 * G3, z2 = z0 - k2 + 2 * G3;
+    const x3 = x0 - 1 + 3 * G3, y3 = y0 - 1 + 3 * G3, z3 = z0 - 1 + 3 * G3;
+    const ii = i & 255, jj = j & 255, kk = k & 255;
+    let n = 0, tt, gi;
+    tt = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+    if (tt > 0) { gi = pm[ii + perm[jj + perm[kk]]] * 3; tt *= tt; n += tt * tt * (g[gi] * x0 + g[gi + 1] * y0 + g[gi + 2] * z0); }
+    tt = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+    if (tt > 0) { gi = pm[ii + i1 + perm[jj + j1 + perm[kk + k1]]] * 3; tt *= tt; n += tt * tt * (g[gi] * x1 + g[gi + 1] * y1 + g[gi + 2] * z1); }
+    tt = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
+    if (tt > 0) { gi = pm[ii + i2 + perm[jj + j2 + perm[kk + k2]]] * 3; tt *= tt; n += tt * tt * (g[gi] * x2 + g[gi + 1] * y2 + g[gi + 2] * z2); }
+    tt = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
+    if (tt > 0) { gi = pm[ii + 1 + perm[jj + 1 + perm[kk + 1]]] * 3; tt *= tt; n += tt * tt * (g[gi] * x3 + g[gi + 1] * y3 + g[gi + 2] * z3); }
+    return 32 * n;
+  };
+})();
+
+function fbm(x, y, z, oct) {
+  let a = 1, f = 1, s = 0, n = 0;
+  for (let i = 0; i < oct; i++) { s += a * noise3(x * f, y * f, z * f); n += a; a *= 0.5; f *= 2.03; }
+  return s / n;
+}
+
+// カールノイズ：スカラー場 ψ の回転 (∂ψ/∂y, -∂ψ/∂x)。発散ゼロなので渦を巻きながら流れる。
+const CURL = { x: 0, y: 0 };
+function curl(x, y, z) {
+  const e = 0.015;
+  const dy = noise3(x, y + e, z) - noise3(x, y - e, z);
+  const dx = noise3(x + e, y, z) - noise3(x - e, y, z);
+  CURL.x = dy / (2 * e);
+  CURL.y = -dx / (2 * e);
+  return CURL;
+}
+
+/* =========================================================
+   色（温度 → 炎の色）
+   ========================================================= */
+const HEAT_STOPS = [
+  [0.00, 30, 3, 0],
+  [0.14, 110, 14, 2],
+  [0.30, 196, 44, 6],
+  [0.50, 255, 104, 18],
+  [0.68, 255, 160, 46],
+  [0.84, 255, 210, 112],
+  [1.00, 255, 246, 214],
+];
+function heatRGB(t) {
+  t = clamp(t, 0, 1);
+  for (let i = 1; i < HEAT_STOPS.length; i++) {
+    const b = HEAT_STOPS[i];
+    if (t <= b[0]) {
+      const a = HEAT_STOPS[i - 1], k = (t - a[0]) / (b[0] - a[0]);
+      return [lerp(a[1], b[1], k) | 0, lerp(a[2], b[2], k) | 0, lerp(a[3], b[3], k) | 0];
+    }
+  }
+  return [255, 246, 214];
+}
+
+/* =========================================================
+   キャンバスと場面の寸法
+   ========================================================= */
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, DPR = 1, S = 1;
+let quality = 1;           // 重いときは粒子を減らす
+const G = {};              // 場面の座標
+let layers = {};           // 事前に描いておく層
+let stars = [], blades = [], logs = [], coals = [], stones = [], bankGrass = [];
+
+const SPR_N = 64;
+const fireSprites = [];
+let smokeWarm, smokeCool, softWhite;
+
+function makeSprite(size, draw) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  draw(c.getContext("2d"), size);
+  return c;
+}
+function radialSprite(r, g, b, mid = 0.35, midA = 0.5) {
+  return makeSprite(64, (x, s) => {
+    const gr = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    gr.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    gr.addColorStop(mid, `rgba(${r},${g},${b},${midA})`);
+    gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    x.fillStyle = gr;
+    x.fillRect(0, 0, s, s);
+  });
+}
+function buildSprites() {
+  for (let i = 0; i < SPR_N; i++) {
+    const [r, g, b] = heatRGB(i / (SPR_N - 1));
+    fireSprites.push(radialSprite(r, g, b, 0.3, 0.45));
+  }
+  smokeWarm = radialSprite(46, 26, 16, 0.4, 0.45);
+  smokeCool = radialSprite(24, 26, 32, 0.4, 0.45);
+  softWhite = radialSprite(255, 255, 255, 0.2, 0.3);
+}
+buildSprites();
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, quality < 0.8 ? 1 : 1.75);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  S = Math.min(W / 560, H / 760);
+  S = Math.max(S, 0.5);
+
+  G.horizon = H * (W < H ? 0.44 : 0.47);
+  G.riverTop = G.horizon;
+  G.riverBot = G.horizon + Math.max(24, H * 0.065);
+  G.fx = W / 2;
+  G.fy = H * (W < H ? 0.74 : 0.77);
+  G.baseW = 118 * S;
+  G.moonX = W * 0.8;
+  G.moonY = Math.min(H * 0.15, G.horizon * 0.35);
+  G.moonR = Math.max(11, 17 * S);
+
+  buildStars();
+  buildLayers();
+  buildFirePit();
+  buildGrass();
+  fire.length = 0; smoke.length = 0; sparks.length = 0;
+  prewarm();
+}
+
+/* =========================================================
+   空・遠景・地面（静的な層）
+   ========================================================= */
+function layerCanvas() {
+  const c = document.createElement("canvas");
+  c.width = canvas.width; c.height = canvas.height;
+  const x = c.getContext("2d");
+  x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return [c, x];
+}
+
+function buildStars() {
+  const r = mulberry32(7);
+  stars = [];
+  const n = Math.round((W * G.horizon) / 900);
+  for (let i = 0; i < n; i++) {
+    const y = Math.pow(r(), 1.25) * G.horizon;
+    const m = Math.pow(r(), 3.2);
+    const tint = r();
+    stars.push({
+      x: r() * W, y,
+      m: m * (1 - 0.6 * (y / G.horizon)),
+      s: 0.6 + m * 1.6,
+      sp: 0.6 + r() * 2.8, ph: r() * 6.28,
+      c: tint < 0.15 ? "255,214,180" : tint < 0.3 ? "190,210,255" : "240,240,255",
+    });
+  }
+}
+
+function buildLayers() {
+  const r = mulberry32(11);
+
+  // ---- 空 ----
+  const [sky, sx] = layerCanvas();
+  const sg = sx.createLinearGradient(0, 0, 0, G.horizon);
+  sg.addColorStop(0, "#010208");
+  sg.addColorStop(0.55, "#060a1a");
+  sg.addColorStop(1, "#141a33");
+  sx.fillStyle = sg;
+  sx.fillRect(0, 0, W, G.horizon + 4);
+
+  // 天の川：斜めの帯に淡い雲と細かい星
+  sx.save();
+  sx.translate(W * 0.35, G.horizon * 0.2);
+  sx.rotate(0.55);
+  const bandLen = Math.hypot(W, H) * 1.2;
+  sx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 260; i++) {
+    const u = (r() - 0.5) * bandLen;
+    const v = gauss() * 70 * S;
+    const d = 0.5 + 0.5 * noise3(u * 0.004, v * 0.01, 3.3);
+    const rad = rr(30, 90) * S;
+    sx.globalAlpha = 0.012 * d;
+    sx.drawImage(softWhite, u - rad, v - rad, rad * 2, rad * 2);
+  }
+  sx.globalAlpha = 1;
+  for (let i = 0; i < 2200; i++) {
+    const u = (r() - 0.5) * bandLen;
+    const v = gauss() * 80 * S;
+    const d = 0.5 + 0.5 * noise3(u * 0.006, v * 0.012, 1.7);
+    if (r() > d) continue;
+    sx.fillStyle = `rgba(220,225,255,${0.12 + r() * 0.3})`;
+    sx.fillRect(u, v, 0.8, 0.8);
+  }
+  // 暗い塵の筋
+  sx.globalCompositeOperation = "source-over";
+  for (let i = 0; i < 70; i++) {
+    const u = (r() - 0.5) * bandLen;
+    const v = gauss() * 18 * S;
+    const rad = rr(14, 40) * S;
+    sx.globalAlpha = 0.09;
+    const gr = sx.createRadialGradient(u, v, 0, u, v, rad);
+    gr.addColorStop(0, "#02030a");
+    gr.addColorStop(1, "rgba(2,3,10,0)");
+    sx.fillStyle = gr;
+    sx.fillRect(u - rad, v - rad, rad * 2, rad * 2);
+  }
+  sx.restore();
+
+  // 月（細い三日月）とその光の輪
+  const { moonX: mx, moonY: my, moonR: mr } = G;
+  const halo = sx.createRadialGradient(mx, my, mr, mx, my, mr * 9);
+  halo.addColorStop(0, "rgba(190,205,255,0.14)");
+  halo.addColorStop(1, "rgba(190,205,255,0)");
+  sx.fillStyle = halo;
+  sx.fillRect(mx - mr * 9, my - mr * 9, mr * 18, mr * 18);
+  const moon = document.createElement("canvas");
+  moon.width = moon.height = Math.ceil(mr * 2 + 4) * DPR;
+  const mc = moon.getContext("2d");
+  mc.scale(DPR, DPR);
+  mc.fillStyle = "#f4efdc";
+  mc.beginPath(); mc.arc(mr + 2, mr + 2, mr, 0, Math.PI * 2); mc.fill();
+  mc.globalCompositeOperation = "destination-out";
+  mc.beginPath(); mc.arc(mr + 2 - mr * 0.42, mr + 2 - mr * 0.12, mr * 0.94, 0, Math.PI * 2); mc.fill();
+  sx.shadowColor = "rgba(240,235,210,0.8)";
+  sx.shadowBlur = 12 * S;
+  sx.drawImage(moon, mx - mr - 2, my - mr - 2, mr * 2 + 4, mr * 2 + 4);
+  sx.shadowBlur = 0;
+
+  // ---- 遠景：山と森 ----
+  const [far, fx] = layerCanvas();
+  // 山並み
+  fx.fillStyle = "#0a0f1f";
+  fx.beginPath();
+  fx.moveTo(0, G.horizon);
+  for (let x = 0; x <= W + 10; x += 8) {
+    const y = G.horizon - (60 + 55 * fbm(x * 0.0022, 0.3, 9, 4) + 30) * S * 1.2;
+    fx.lineTo(x, y);
+  }
+  fx.lineTo(W, G.horizon + 4); fx.lineTo(0, G.horizon + 4);
+  fx.fill();
+  // 霞
+  const mist = fx.createLinearGradient(0, G.horizon - 70 * S, 0, G.horizon);
+  mist.addColorStop(0, "rgba(40,52,84,0)");
+  mist.addColorStop(1, "rgba(40,52,84,0.35)");
+  fx.fillStyle = mist;
+  fx.fillRect(0, G.horizon - 70 * S, W, 70 * S);
+  // 針葉樹の並び（奥と手前の二列）
+  const drawPine = (c, x, base, h, w, col) => {
+    c.fillStyle = col;
+    c.beginPath();
+    const tiers = 5 + ((h / (12 * S)) | 0);
+    c.moveTo(x, base - h);
+    for (let i = 1; i <= tiers; i++) {
+      const k = i / tiers;
+      const y = base - h + h * k;
+      const ww = w * (0.18 + 0.82 * k) * (0.85 + 0.3 * r());
+      c.lineTo(x + ww, y);
+      c.lineTo(x + ww * 0.45, y - h * 0.04);
+    }
+    for (let i = tiers; i >= 1; i--) {
+      const k = i / tiers;
+      const y = base - h + h * k;
+      const ww = w * (0.18 + 0.82 * k) * (0.85 + 0.3 * r());
+      c.lineTo(x - ww * 0.45, y - h * 0.04);
+      c.lineTo(x - ww, y);
+    }
+    c.lineTo(x, base - h);
+    c.fill();
+  };
+  for (let row = 0; row < 2; row++) {
+    const col = row === 0 ? "#070a14" : "#03050a";
+    let x = -20;
+    while (x < W + 30) {
+      const h = (row === 0 ? rr(34, 70) : rr(46, 108)) * S * (0.8 + 0.4 * (0.5 + 0.5 * noise3(x * 0.004, row, 2)));
+      drawPine(fx, x, G.horizon + 2, h, h * rr(0.2, 0.28), col);
+      x += rr(7, 20) * S;
+    }
+    fx.fillStyle = col;
+    fx.fillRect(0, G.horizon - 6 * S, W, 8 * S + 2);
+  }
+
+  // ---- 地面 ----
+  const [gnd, gx] = layerCanvas();
+  const bankY = (x) => G.riverBot + (6 * Math.sin(x * 0.011) + 5 * noise3(x * 0.02, 0, 4)) * S;
+  G.bankY = bankY;
+  const gg = gx.createLinearGradient(0, G.riverBot, 0, H);
+  gg.addColorStop(0, "#07080b");
+  gg.addColorStop(0.35, "#0c0908");
+  gg.addColorStop(1, "#060404");
+  gx.fillStyle = gg;
+  gx.beginPath();
+  gx.moveTo(0, H);
+  for (let x = 0; x <= W + 6; x += 6) gx.lineTo(x, bankY(x));
+  gx.lineTo(W, H);
+  gx.fill();
+  // 土の粒
+  for (let i = 0; i < (W * (H - G.riverBot)) / 90; i++) {
+    const x = r() * W, y = G.riverBot + r() * (H - G.riverBot);
+    if (y < bankY(x) + 2) continue;
+    gx.fillStyle = r() < 0.5 ? "rgba(60,48,40,0.25)" : "rgba(0,0,0,0.35)";
+    const s = (0.6 + r() * 1.8) * S;
+    gx.fillRect(x, y, s, s * 0.6);
+  }
+  // 焚き火跡の灰の輪
+  const ash = gx.createRadialGradient(G.fx, G.fy, 0, G.fx, G.fy, G.baseW * 1.8);
+  ash.addColorStop(0, "rgba(60,54,50,0.55)");
+  ash.addColorStop(0.6, "rgba(40,36,34,0.3)");
+  ash.addColorStop(1, "rgba(30,28,26,0)");
+  gx.save();
+  gx.translate(G.fx, G.fy);
+  gx.scale(1, 0.3);
+  gx.translate(-G.fx, -G.fy);
+  gx.fillStyle = ash;
+  gx.fillRect(G.fx - G.baseW * 2, G.fy - G.baseW * 2, G.baseW * 4, G.baseW * 4);
+  gx.restore();
+
+  // 川岸の草（静的）
+  bankGrass = [];
+  for (let x = 0; x < W; x += rr(2, 5) * S) {
+    if (r() < 0.35) continue;
+    bankGrass.push({ x, y: bankY(x) + 1, h: rr(4, 16) * S * (0.5 + noise3(x * 0.01, 5, 5) * 0.5 + 0.5), b: rr(-3, 3) * S, ph: r() * 6.28 });
+  }
+
+  // ---- 左右の木立（手前の額縁） ----
+  const [fg, fgx] = layerCanvas();
+  const grove = (x0, x1, base) => {
+    for (let x = x0; x < x1; x += rr(14, 30) * S) {
+      const far = Math.abs(x - W / 2) / (W / 2);   // 画面の端ほど近く、高い木
+      const h = rr(130, 220) * S * (0.5 + far * 1.1);
+      const b = base + rr(-6, 10) * S;
+      fgx.fillStyle = "#020203";
+      fgx.fillRect(x - 2.5 * S, b - h * 0.2, 5 * S, h * 0.2 + 2);
+      drawPine(fgx, x, b - h * 0.08, h, h * rr(0.2, 0.26), "#020203");
+    }
+  };
+  const side = Math.max(W * 0.14, 90 * S);
+  const gb = G.riverBot + 26 * S;
+  grove(-30 * S, side, gb);
+  grove(W - side, W + 30 * S, gb);
+
+  // ---- 周辺減光 ----
+  const [vig, vx] = layerCanvas();
+  const vg = vx.createRadialGradient(W / 2, H * 0.62, Math.min(W, H) * 0.25, W / 2, H * 0.6, Math.hypot(W, H) * 0.62);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(0,0,0,0.72)");
+  vx.fillStyle = vg;
+  vx.fillRect(0, 0, W, H);
+
+  layers = { sky, far, gnd, fg, vig };
+}
+
+/* =========================================================
+   薪・熾火・石
+   ========================================================= */
+function buildFirePit() {
+  const r = mulberry32(42);
+  const { fx, fy, baseW } = G;
+
+  // 薪：内側の端（inner）が火の中心、外側に向かって伸びる
+  const L = (ax, ay, bx, by, rad, front) => {
+    const len = Math.hypot(bx - ax, by - ay);
+    const log = { ax, ay, bx, by, rad, len, ang: Math.atan2(by - ay, bx - ax), front, spots: [], cracks: [], bark: [] };
+    for (let i = 0; i < 26; i++) {
+      log.spots.push({ u: Math.pow(r(), 1.5) * len * 0.7, v: (r() - 0.5) * rad * 1.5, s: rr(0.5, 1.1) * rad, seed: r() * 100 });
+    }
+    for (let i = 0; i < 18; i++) {
+      const u0 = Math.pow(r(), 1.3) * len * 0.62;
+      const pts = [];
+      let u = u0, v = (r() - 0.5) * rad * 1.6;
+      const across = r() < 0.6;
+      for (let k = 0; k < 4; k++) {
+        pts.push([u, v]);
+        if (across) { u += rr(-2, 2) * S; v += (v > 0 ? -1 : 1) * rr(3, 7) * S; }
+        else { u += rr(5, 12) * S; v += rr(-2, 2) * S; }
+        v = clamp(v, -rad * 0.9, rad * 0.9);
+      }
+      log.cracks.push({ pts, seed: r() * 100, w: rr(0.9, 1.8) * S, u: u0 });
+    }
+    for (let i = 0; i < 9; i++) {
+      log.bark.push({ u: len * rr(0.3, 0.95), v: (r() - 0.5) * rad * 1.7, l: rr(10, 30) * S });
+    }
+    logs.push(log);
+  };
+  logs = [];
+  // 奥の薪（横倒し）
+  L(fx + 14 * S, fy - 16 * S, fx + 150 * S, fy - 30 * S, 13 * S, false);
+  L(fx - 10 * S, fy - 14 * S, fx - 140 * S, fy - 34 * S, 12 * S, false);
+  // 組んだ薪（中心へ寄りかかる）
+  L(fx + 4 * S, fy - 44 * S, fx - 128 * S, fy + 10 * S, 14 * S, true);
+  L(fx - 4 * S, fy - 40 * S, fx + 132 * S, fy + 14 * S, 13.5 * S, true);
+  // 手前の薪
+  L(fx + 16 * S, fy + 16 * S, fx - 118 * S, fy + 30 * S, 12.5 * S, true);
+
+  // 熾火（火床の炭）
+  coals = [];
+  for (let i = 0; i < 70; i++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r());
+    const x = fx + Math.cos(a) * d * baseW * 0.85;
+    const y = fy + Math.sin(a) * d * baseW * 0.22 + 4 * S;
+    const rad = rr(3.5, 9) * S * (1.1 - d * 0.4);
+    const pts = [];
+    const n = 5 + ((r() * 3) | 0);
+    for (let k = 0; k < n; k++) {
+      const aa = (k / n) * Math.PI * 2 + r() * 0.5;
+      const rrr = rad * rr(0.65, 1.1);
+      pts.push([Math.cos(aa) * rrr, Math.sin(aa) * rrr * 0.62]);
+    }
+    coals.push({ x, y, rad, pts, seed: r() * 100, d });
+  }
+  coals.sort((a, b) => a.y - b.y);
+
+  // 石の輪
+  stones = [];
+  const N = 15;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + rr(-0.08, 0.08);
+    const rx = baseW * 1.42, ry = rx * 0.3;
+    const x = fx + Math.cos(a) * rx, y = fy + 8 * S + Math.sin(a) * ry;
+    const w = rr(22, 32) * S * (0.85 + 0.25 * Math.sin(a)), h = w * rr(0.55, 0.75);
+    const pts = [];
+    const n = 9;
+    for (let k = 0; k < n; k++) {
+      const aa = (k / n) * Math.PI * 2;
+      const q = rr(0.85, 1.08);
+      pts.push([Math.cos(aa) * w * 0.5 * q, Math.sin(aa) * h * 0.5 * q - (Math.sin(aa) < 0 ? h * 0.12 : 0)]);
+    }
+    stones.push({ x, y, w, h, pts, a, back: Math.sin(a) < 0 });
+  }
+  stones.sort((a, b) => a.y - b.y);
+}
+
+function buildGrass() {
+  const r = mulberry32(99);
+  blades = [];
+  const n = Math.round(W / (3.2 * S));
+  for (let i = 0; i < n; i++) {
+    const x = r() * W;
+    const edge = Math.abs(x - W / 2) / (W / 2); // 端ほど多く、高く
+    if (r() > 0.25 + edge * 0.9) continue;
+    blades.push({ x, h: rr(18, 60) * S * (0.35 + edge), b: rr(-10, 10) * S, ph: r() * 6.28, w: rr(1.2, 2.6) * S });
+  }
+}
+
+/* =========================================================
+   粒子：炎・煙・火の粉
+   ========================================================= */
+const fire = [], smoke = [], sparks = [];
+const MAX_FIRE = 1500, MAX_SMOKE = 60, MAX_SPARKS = 220;
+
+const state = {
+  t: 0,
+  intensity: 1,       // 火の勢い（ゆっくり変わる）
+  flare: 0,           // つついた時の一時的な燃え上がり
+  light: 1,           // ちらつく明るさ
+  gust: 0.3,          // 風の強さ 0..1（音と見た目で共有）
+  wind: 0,            // 風の向きを含む値
+  emitAcc: 0, smokeAcc: 0, sparkAcc: 0,
+  nextShoot: 25 + rand() * 40,
+  shoot: null,
+};
+
+function spawnFlame() {
+  if (fire.length >= MAX_FIRE * quality) return;
+  const { fx, fy, baseW } = G;
+  const g = gauss();
+  const dx = g * baseW * 0.62;
+  const edge = Math.min(1, Math.abs(dx) / (baseW * 0.8));
+  fire.push({
+    x: fx + dx,
+    y: fy - rr(0, 16) * S - (1 - edge) * 10 * S,
+    vx: 0,
+    vy: -rr(30, 70) * S,
+    age: 0,
+    life: rr(0.5, 1.35) * (1 - edge * 0.55) * (0.75 + 0.35 * state.intensity),
+    size: rr(12, 22) * S * (1 - edge * 0.45),
+    heat: rr(0.85, 1.05) - edge * 0.25,
+  });
+}
+
+function spawnSmoke(x, y) {
+  if (smoke.length >= MAX_SMOKE * quality) return;
+  smoke.push({ x, y, vx: 0, vy: -rr(20, 40) * S, age: 0, life: rr(4, 8), size: rr(18, 30) * S, rot: rand() });
+}
+
+function spawnSpark(burst = 0) {
+  if (sparks.length >= MAX_SPARKS) return;
+  const { fx, fy, baseW } = G;
+  const up = rr(140, 300) * S * (1 + burst * 0.8);
+  sparks.push({
+    x: fx + gauss() * baseW * 0.4,
+    y: fy - rr(10, 50) * S,
+    px: 0, py: 0,
+    vx: gauss() * 70 * S * (1 + burst),
+    vy: -up,
+    age: 0,
+    life: rr(1.2, 3.4),
+    seed: rand() * 100,
+    heat: rr(0.75, 1),
+  });
+  const s = sparks[sparks.length - 1];
+  s.px = s.x; s.py = s.y;
+}
+
+function updateParticles(dt) {
+  const t = state.t;
+  const { fx, fy } = G;
+  const fs = 1 / (70 * S);       // 炎のノイズの細かさ
+  const flameH = 240 * S;
+  const wind = state.wind;
+
+  // 炎
+  for (let i = fire.length - 1; i >= 0; i--) {
+    const p = fire[i];
+    p.age += dt;
+    if (p.age >= p.life) {
+      if (rand() < 0.025) spawnSmoke(p.x, p.y);
+      fire[i] = fire[fire.length - 1];
+      fire.pop();
+      continue;
+    }
+    const h = clamp((fy - p.y) / flameH, 0, 1.4);
+    // 上に流れるノイズ場で炎の舌をつくる
+    const c = curl(p.x * fs, p.y * fs + t * 1.1, t * 0.35);
+    const turb = (45 + 85 * h) * S;
+    const tvx = c.x * turb + wind * 90 * S * h;
+    p.vx += (tvx - p.vx) * Math.min(1, dt * 5);
+    p.vx += (fx + wind * 60 * S * h - p.x) * dt * 3.2 * (1 - h * 0.3);   // 先端へ向かって細くなる
+    p.vy -= (260 + 140 * state.flare) * S * dt;         // 浮力
+    p.vy *= 1 - dt * 0.6;
+    p.x += p.vx * dt;
+    p.y += (p.vy + c.y * turb * 0.35) * dt;
+  }
+
+  // 煙
+  const ss = 1 / (160 * S);
+  for (let i = smoke.length - 1; i >= 0; i--) {
+    const p = smoke[i];
+    p.age += dt;
+    if (p.age >= p.life || p.y < -100) { smoke[i] = smoke[smoke.length - 1]; smoke.pop(); continue; }
+    const c = curl(p.x * ss, p.y * ss + t * 0.2, t * 0.12 + 10);
+    const tvx = c.x * 40 * S + wind * 70 * S;
+    p.vx += (tvx - p.vx) * Math.min(1, dt * 1.5);
+    p.vy += (-34 * S - p.vy) * Math.min(1, dt * 0.8);
+    p.x += p.vx * dt;
+    p.y += (p.vy + c.y * 12 * S) * dt;
+    p.size += dt * 16 * S;
+  }
+
+  // 火の粉：小さなスケールの渦でひらひら舞う
+  const ks = 1 / (40 * S);
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const p = sparks[i];
+    p.age += dt;
+    if (p.age >= p.life || p.y < -20) { sparks[i] = sparks[sparks.length - 1]; sparks.pop(); continue; }
+    const c = curl(p.x * ks, p.y * ks, t * 0.6 + p.seed);
+    p.vx += (c.x * 160 * S + wind * 110 * S - p.vx) * Math.min(1, dt * 2.2);
+    p.vy += (c.y * 90 * S - 40 * S - p.vy) * Math.min(1, dt * 1.1);
+    p.px = p.x; p.py = p.y;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  }
+}
+
+function prewarm() {
+  // 開いた瞬間から燃えているように、少し時間を進めておく
+  for (let i = 0; i < 90; i++) step(1 / 45, true);
+}
+
+/* =========================================================
+   描画
+   ========================================================= */
+function drawStars(t) {
+  for (const s of stars) {
+    const tw = 0.65 + 0.35 * Math.sin(t * s.sp + s.ph) * Math.sin(t * s.sp * 0.37 + s.ph * 2);
+    const a = s.m * tw;
+    if (a < 0.02) continue;
+    ctx.fillStyle = `rgba(${s.c},${a.toFixed(3)})`;
+    ctx.fillRect(s.x, s.y, s.s, s.s);
+    if (s.m > 0.45) {
+      ctx.globalAlpha = a * 0.35;
+      const g = s.s * 5;
+      ctx.drawImage(softWhite, s.x + s.s / 2 - g, s.y + s.s / 2 - g, g * 2, g * 2);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function drawShootingStar(dt) {
+  state.nextShoot -= dt;
+  if (!state.shoot && state.nextShoot <= 0) {
+    state.shoot = {
+      x: rr(0.1, 0.9) * W, y: rr(0.05, 0.3) * G.horizon,
+      vx: rr(0.6, 1) * (rand() < 0.5 ? -1 : 1), vy: rr(0.25, 0.45),
+      age: 0, life: rr(0.6, 1.1), len: rr(90, 180) * S,
+    };
+    state.nextShoot = rr(35, 110);
+  }
+  const s = state.shoot;
+  if (!s) return;
+  s.age += dt;
+  const k = s.age / s.life;
+  if (k >= 1) { state.shoot = null; return; }
+  const sp = 700 * S;
+  const hx = s.x + s.vx * sp * s.age, hy = s.y + s.vy * sp * s.age;
+  const tx = hx - s.vx * s.len, ty = hy - s.vy * s.len;
+  const a = Math.sin(k * Math.PI);
+  const g = ctx.createLinearGradient(hx, hy, tx, ty);
+  g.addColorStop(0, `rgba(235,240,255,${0.85 * a})`);
+  g.addColorStop(1, "rgba(235,240,255,0)");
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+}
+
+function drawRiver(t) {
+  const top = G.riverTop, bot = G.riverBot + 10 * S;
+  const wg = ctx.createLinearGradient(0, top, 0, bot);
+  wg.addColorStop(0, "#0d1428");
+  wg.addColorStop(1, "#05080f");
+  ctx.fillStyle = wg;
+  ctx.fillRect(0, top, W, bot - top);
+
+  ctx.globalCompositeOperation = "lighter";
+  const step = 2.2 * Math.max(1, S);
+  // 月の映り込み
+  for (let y = top + 1; y < bot; y += step) {
+    const d = (y - top) / (bot - top);
+    const n = noise3(y * 0.12, t * 1.4, 1.3);
+    const w = (8 + d * 46) * S * (0.35 + 0.65 * Math.max(0, n + 0.3));
+    const x = G.moonX + noise3(y * 0.05, t * 0.7, 5.1) * 14 * S;
+    ctx.fillStyle = `rgba(210,215,235,${(0.16 + 0.24 * (1 - d)) * Math.max(0, n + 0.5)})`;
+    ctx.fillRect(x - w / 2, y, w, 1.1);
+  }
+  // 流れていく光のさざ波（左から右へ）
+  const nr = Math.round(W / 10);
+  for (let i = 0; i < nr; i++) {
+    const seed = i * 13.37;
+    const d = (i * 0.618) % 1;
+    const y = top + 2 + d * (bot - top - 4);
+    const sp = (18 + d * 30) * S;
+    const x = ((seed * 97 + t * sp) % (W + 80)) - 40;
+    const a = 0.5 + 0.5 * Math.sin(t * 2 + seed);
+    const w = (4 + d * 14) * S;
+    ctx.fillStyle = `rgba(150,170,215,${0.13 * a})`;
+    ctx.fillRect(x, y, w, 1);
+  }
+  // 焚き火に照らされた水面（岸寄りにほんのり）
+  const L = state.light;
+  for (let y = top + (bot - top) * 0.45; y < bot; y += step) {
+    const d = (y - top) / (bot - top);
+    const n = noise3(y * 0.2, t * 2.2, 7.7);
+    const w = (30 + d * 120) * S * Math.max(0, n + 0.4);
+    const x = G.fx + noise3(y * 0.07, t, 9) * 30 * S;
+    ctx.fillStyle = `rgba(255,120,40,${0.06 * d * L})`;
+    ctx.fillRect(x - w / 2, y, w, 1.2);
+  }
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function drawBankGrass(t) {
+  ctx.strokeStyle = "#040405";
+  ctx.lineWidth = Math.max(1, 1.1 * S);
+  ctx.beginPath();
+  for (const g of bankGrass) {
+    const sw = Math.sin(t * 1.3 + g.ph + g.x * 0.01) * 1.5 * S + state.wind * g.h * 0.35;
+    ctx.moveTo(g.x, g.y);
+    ctx.quadraticCurveTo(g.x + g.b * 0.3, g.y - g.h * 0.6, g.x + g.b + sw, g.y - g.h);
+  }
+  ctx.stroke();
+}
+
+function drawFireLight() {
+  const { fx, fy } = G;
+  const L = state.light;
+  ctx.globalCompositeOperation = "lighter";
+  // 地面を照らす光（楕円）
+  ctx.save();
+  ctx.translate(fx, fy);
+  ctx.scale(1, 0.34);
+  const R = 560 * S * (0.75 + 0.25 * L);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+  g.addColorStop(0, `rgba(255,120,45,${0.34 * L})`);
+  g.addColorStop(0.25, `rgba(210,80,25,${0.16 * L})`);
+  g.addColorStop(0.6, `rgba(120,40,12,${0.05 * L})`);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(-R, -R, R * 2, R * 2);
+  ctx.restore();
+  // 空気がほんのり色づく
+  const R2 = 520 * S;
+  const g2 = ctx.createRadialGradient(fx, fy - 90 * S, 0, fx, fy - 90 * S, R2);
+  g2.addColorStop(0, `rgba(255,110,40,${0.13 * L})`);
+  g2.addColorStop(0.5, `rgba(160,55,20,${0.045 * L})`);
+  g2.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g2;
+  ctx.fillRect(fx - R2, fy - 90 * S - R2, R2 * 2, R2 * 2);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function pathPoly(x, y, pts) {
+  ctx.beginPath();
+  ctx.moveTo(x + pts[0][0], y + pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(x + pts[i][0], y + pts[i][1]);
+  ctx.closePath();
+}
+
+function drawStone(s) {
+  const L = state.light;
+  pathPoly(s.x, s.y, s.pts);
+  ctx.fillStyle = "#17161a";
+  ctx.fill();
+  // 火の方向から照らされる面
+  const dx = G.fx - s.x, dy = G.fy - s.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const lx = s.x + (dx / d) * s.w * 0.45, ly = s.y + (dy / d) * s.h * 0.2 - s.h * 0.25;
+  const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, s.w * 0.9);
+  const k = s.back ? 0.55 : 0.28;
+  g.addColorStop(0, `rgba(255,130,60,${k * L})`);
+  g.addColorStop(1, "rgba(255,130,60,0)");
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+  // 下側の影
+  const sg = ctx.createLinearGradient(0, s.y - s.h * 0.5, 0, s.y + s.h * 0.5);
+  sg.addColorStop(0.3, "rgba(0,0,0,0)");
+  sg.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = sg;
+  ctx.fill();
+}
+
+function emberHeat(seed, u, t) {
+  // ゆっくり呼吸するように明滅する熱。風が吹くと酸素で明るくなる。
+  const n = noise3(seed, t * 0.28 + u * 0.03, u * 0.05);
+  const n2 = noise3(seed + 40, t * 1.3, 0);
+  return clamp(0.5 + 0.55 * n + 0.12 * n2, 0, 1) * (0.72 + 0.5 * state.gust) * (0.8 + 0.25 * state.intensity);
+}
+
+function drawLog(log, t) {
+  const L = state.light;
+  const { rad: r, len } = log;
+  ctx.save();
+  ctx.translate(log.ax, log.ay);
+  ctx.rotate(log.ang);
+
+  // 本体：内側は炭、外側は樹皮
+  const body = ctx.createLinearGradient(0, 0, len, 0);
+  body.addColorStop(0, "#0f0907");
+  body.addColorStop(0.45, "#1a100b");
+  body.addColorStop(0.62, "#241910");
+  body.addColorStop(1, "#2a1d13");
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.85);
+  ctx.quadraticCurveTo(-r * 0.4, 0, 0, r * 0.85);
+  ctx.lineTo(len, r);
+  ctx.lineTo(len, -r);
+  ctx.closePath();
+  ctx.fill();
+
+  // 樹皮の筋
+  ctx.strokeStyle = "rgba(10,6,4,0.7)";
+  ctx.lineWidth = Math.max(1, S);
+  ctx.beginPath();
+  for (const b of log.bark) { ctx.moveTo(b.u, b.v); ctx.lineTo(Math.min(len, b.u + b.l), b.v + 0.5 * S); }
+  ctx.stroke();
+
+  // 火に照らされる上側と、影になる下側
+  const sh = ctx.createLinearGradient(0, -r, 0, r);
+  sh.addColorStop(0, `rgba(255,110,40,${0.13 * L})`);
+  sh.addColorStop(0.35, "rgba(255,120,50,0)");
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = sh;
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+  const sh2 = ctx.createLinearGradient(0, -r, 0, r);
+  sh2.addColorStop(0.45, "rgba(0,0,0,0)");
+  sh2.addColorStop(1, "rgba(0,0,0,0.6)");
+  ctx.fillStyle = sh2;
+  ctx.fill();
+
+  // 切り口（外側の端）：年輪
+  ctx.fillStyle = "#3a2a1c";
+  ctx.beginPath();
+  ctx.ellipse(len, 0, r * 0.38, r, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(25,15,8,0.55)";
+  ctx.lineWidth = Math.max(0.7, 0.8 * S);
+  for (let k = 0.3; k < 1; k += 0.25) {
+    ctx.beginPath();
+    ctx.ellipse(len, 0, r * 0.38 * k, r * k, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = `rgba(255,140,70,${0.08 * L})`;
+  ctx.beginPath();
+  ctx.ellipse(len, 0, r * 0.38, r, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 赤く光る熾（おき）の斑点
+  ctx.globalCompositeOperation = "lighter";
+  for (const s of log.spots) {
+    const prox = Math.pow(clamp(1 - s.u / (len * 0.72), 0, 1), 1.2);
+    const h = emberHeat(s.seed, s.u, t) * prox;
+    if (h < 0.05) continue;
+    const idx = Math.min(SPR_N - 1, (h * 0.62 * SPR_N) | 0);
+    ctx.globalAlpha = Math.min(1, h * 0.85);
+    const z = s.s * (1.2 + h);
+    ctx.drawImage(fireSprites[idx], s.u - z, s.v - z * 0.7, z * 2, z * 1.4);
+  }
+  // 炭のひび割れ：内側から赤い光が漏れる
+  for (const c of log.cracks) {
+    const prox = Math.pow(clamp(1 - c.u / (len * 0.66), 0, 1), 0.9);
+    const h = emberHeat(c.seed, c.u, t) * prox;
+    if (h < 0.06) continue;
+    const [cr, cg, cb] = heatRGB(0.25 + h * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(c.pts[0][0], c.pts[0][1]);
+    for (let k = 1; k < c.pts.length; k++) ctx.lineTo(c.pts[k][0], c.pts[k][1]);
+    ctx.globalAlpha = h * 0.35;
+    ctx.strokeStyle = `rgb(${cr},${cg >> 1},${cb})`;
+    ctx.lineWidth = c.w * 4;
+    ctx.stroke();
+    ctx.globalAlpha = Math.min(1, h * 1.1);
+    ctx.strokeStyle = `rgb(${cr},${cg},${cb})`;
+    ctx.lineWidth = c.w;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.restore();
+}
+
+function drawCoals(t) {
+  for (const c of coals) {
+    pathPoly(c.x, c.y, c.pts);
+    ctx.fillStyle = "#120a07";
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "lighter";
+  for (const c of coals) {
+    const h = Math.pow(emberHeat(c.seed, 0, t), 1.6) * (1 - c.d * 0.55);
+    const [r, g, b] = heatRGB(0.14 + h * 0.62);
+    pathPoly(c.x, c.y, c.pts);
+    ctx.fillStyle = `rgba(${r},${g},${b},${(0.08 + h * 0.85).toFixed(3)})`;
+    ctx.fill();
+    const z = c.rad * (2.2 + h * 1.5);
+    ctx.globalAlpha = h * 0.5;
+    ctx.drawImage(fireSprites[Math.min(SPR_N - 1, (h * 0.55 * SPR_N) | 0)], c.x - z, c.y - z * 0.6, z * 2, z * 1.2);
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = "source-over";
+  // 灰のふち
+  ctx.strokeStyle = "rgba(120,110,100,0.18)";
+  ctx.lineWidth = Math.max(0.7, 0.8 * S);
+  for (let i = 0; i < coals.length; i += 3) {
+    const c = coals[i];
+    pathPoly(c.x, c.y, c.pts);
+    ctx.stroke();
+  }
+}
+
+function drawSmoke() {
+  // 夜の煙は、火と月に照らされた淡いもやとして見える。
+  // 低いアルファを何百回も重ねると 8bit の丸めで黒ずむので、加算で少なめに描く。
+  const { fy } = G;
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of smoke) {
+    const k = p.age / p.life;
+    const a = Math.min(1, p.age / 1.2) * Math.pow(1 - k, 1.3) * 0.2;
+    if (a <= 0.004) continue;
+    const warm = clamp(1 - (fy - p.y) / (380 * S), 0, 1) * state.light;
+    const z = p.size;
+    ctx.globalAlpha = a;
+    ctx.drawImage(warm > 0.35 ? smokeWarm : smokeCool, p.x - z, p.y - z, z * 2, z * 2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function drawFlames() {
+  const { fx, fy, baseW } = G;
+  const L = state.light;
+  ctx.globalCompositeOperation = "lighter";
+  // 炎の根元の強い光
+  ctx.globalAlpha = 0.3 * L;
+  const bz = baseW * 1.1;
+  ctx.drawImage(fireSprites[40], fx - bz, fy - 55 * S - bz * 0.5, bz * 2, bz);
+  for (const p of fire) {
+    const k = p.age / p.life;
+    const T = p.heat * Math.pow(1 - k, 0.75);
+    const idx = Math.min(SPR_N - 1, Math.max(0, (T * SPR_N) | 0));
+    const fade = (k < 0.12 ? k / 0.12 : 1) * Math.pow(1 - k, 0.6);
+    ctx.globalAlpha = fade * 0.33;
+    const z = p.size * (1 - 0.5 * k);
+    ctx.drawImage(fireSprites[idx], p.x - z, p.y - z * 1.25, z * 2, z * 2.5);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function drawSparks() {
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+  for (const p of sparks) {
+    const k = p.age / p.life;
+    const flick = 0.6 + 0.4 * Math.sin(p.age * 28 + p.seed * 7);
+    const T = p.heat * (1 - k * 0.85);
+    const [r, g, b] = heatRGB(T);
+    const a = (1 - k) * flick;
+    ctx.strokeStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 1.5 * S) * (1 - k * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    const z = 5 * S;
+    ctx.globalAlpha = a * 0.35;
+    ctx.drawImage(fireSprites[Math.min(SPR_N - 1, (T * SPR_N) | 0)], p.x - z, p.y - z, z * 2, z * 2);
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function drawForegroundGrass(t) {
+  ctx.fillStyle = "#020202";
+  ctx.strokeStyle = "#030202";
+  ctx.lineCap = "round";
+  for (const b of blades) {
+    const sway = Math.sin(t * 1.1 + b.ph + b.x * 0.004) * b.h * 0.06 + state.wind * b.h * 0.4;
+    ctx.lineWidth = b.w;
+    ctx.beginPath();
+    ctx.moveTo(b.x, H + 2);
+    ctx.quadraticCurveTo(b.x + b.b * 0.3, H - b.h * 0.55, b.x + b.b + sway, H - b.h);
+    ctx.stroke();
+  }
+}
+
+/* =========================================================
+   時間の進行
+   ========================================================= */
+function step(dt, silent) {
+  state.t += dt;
+  const t = state.t;
+
+  // 火の勢い：数十秒単位でゆっくり揺らぐ
+  state.flare = Math.max(0, state.flare - dt * 0.12);
+  state.intensity = clamp(0.88 + 0.2 * fbm(t * 0.018, 3.1, 0, 3) + state.flare * 0.6, 0.6, 1.5);
+  state.light = state.intensity * (0.86 + 0.1 * noise3(t * 5.5, 1, 0) + 0.05 * noise3(t * 13, 2, 0));
+
+  // 風：ときどき吹き抜ける突風
+  const gRaw = 0.5 + 0.6 * fbm(t * 0.06, 7.7, 0, 3);
+  state.gust = clamp(Math.pow(clamp(gRaw, 0, 1), 1.8), 0, 1);
+  state.wind = state.gust * (0.55 + 0.45 * noise3(t * 0.02, 4.4, 0)) * 0.8;
+
+  // 放出
+  state.emitAcc += dt * 800 * quality * (0.55 + 0.45 * state.intensity) * (1 + state.flare * 0.6);
+  while (state.emitAcc >= 1) { spawnFlame(); state.emitAcc -= 1; }
+  state.sparkAcc += dt * (1.2 + state.gust * 3 + state.flare * 8);
+  while (state.sparkAcc >= 1) { spawnSpark(0); state.sparkAcc -= 1; }
+
+  // パチッと鳴る瞬間
+  if (!silent) crackleEvents(dt);
+
+  updateParticles(dt);
+}
+
+function crackleEvents(dt) {
+  const rate = (1.6 + state.flare * 6 + state.gust * 1.2) * state.intensity;
+  if (rand() < rate * dt) {
+    const big = rand() < 0.16;
+    audio.crackle(big ? rr(0.7, 1) : rr(0.2, 0.7), big);
+    if (big) {
+      const n = 4 + ((rand() * 10) | 0);
+      for (let i = 0; i < n; i++) spawnSpark(0.4);
+    }
+    // 小さなパチパチの連鎖
+    if (rand() < 0.35) {
+      const n = 1 + ((rand() * 4) | 0);
+      for (let i = 0; i < n; i++) audio.crackle(rr(0.1, 0.5), false, rr(0.02, 0.25));
+    }
+  }
+}
+
+function poke() {
+  state.flare = Math.min(1, state.flare + 0.55);
+  const n = 26 + ((rand() * 20) | 0);
+  for (let i = 0; i < n; i++) spawnSpark(0.9);
+  audio.crackle(1, true);
+  for (let i = 0; i < 6; i++) audio.crackle(rr(0.3, 0.9), rand() < 0.3, rr(0.03, 0.5));
+  audio.settle();
+}
+
+/* =========================================================
+   音（すべて Web Audio で合成）
+   ========================================================= */
+const audio = (() => {
+  let ac = null, master, buses = {}, reverb, noiseBuf, brownBuf, pinkBuf;
+  const crickets = [], babble = [];
+  let windNodes, fireNodes, started = false, muted = false, lastParam = 0, timer = 0;
+  const mix = { fire: 1, bugs: 1, river: 1, wind: 1 };
+  const BUS_BASE = { fire: 0.9, bugs: 0.55, river: 0.55, wind: 0.6 };
+
+  function buffer(sec, fill) {
+    const sr = ac.sampleRate, n = Math.floor(sec * sr);
+    const b = ac.createBuffer(1, n, sr);
+    fill(b.getChannelData(0), sr, n);
+    return b;
+  }
+  // ループの継ぎ目でプツッと鳴らないよう、始点と終点の値をそろえる
+  function seamless(d, n) {
+    const drift = d[n - 1] - d[0];
+    for (let i = 0; i < n; i++) d[i] -= (drift * i) / (n - 1);
+  }
+  function loopSrc(buf, offset = 0) {
+    const s = ac.createBufferSource();
+    s.buffer = buf; s.loop = true;
+    s.start(0, offset);
+    return s;
+  }
+  function chain(...nodes) { for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); return nodes[nodes.length - 1]; }
+  function filt(type, freq, Q = 0.7) { const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = Q; return f; }
+  function gain(v) { const g = ac.createGain(); g.gain.value = v; return g; }
+  function pan(v) { const p = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain(); if (p.pan) p.pan.value = v; return p; }
+
+  function makeIR(sec) {
+    const sr = ac.sampleRate, n = Math.floor(sec * sr);
+    const b = ac.createBuffer(2, n, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = b.getChannelData(ch);
+      let lp = 0;
+      for (let i = 0; i < n; i++) {
+        const k = i / n;
+        lp += (Math.random() * 2 - 1 - lp) * (0.6 - 0.5 * k); // 後ろほど高音が減衰
+        d[i] = lp * Math.pow(1 - k, 2.6);
+      }
+    }
+    return b;
+  }
+
+  // ---- 虫の声のバッファを合成 ----
+  function cricketBuffers() {
+    const tau = Math.PI * 2;
+    // エンマコオロギ「コロコロリー」
+    const emma = buffer(0.95, (d, sr, n) => {
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        const f = 4300 - 180 * t;
+        ph += (tau * f) / sr;
+        let env = 0;
+        if (t < 0.42) {
+          const pulse = (t % 0.07) / 0.07;
+          env = pulse < 0.55 ? Math.sin((pulse / 0.55) * Math.PI) : 0;
+        } else if (t < 0.9) {
+          const k = (t - 0.42) / 0.48;
+          env = Math.sin(k * Math.PI) * (0.65 + 0.35 * Math.sin(t * tau * 38));
+        }
+        d[i] = env * (Math.sin(ph) + 0.18 * Math.sin(ph * 2));
+      }
+    });
+    // スズムシ「リーン」
+    const suzu = buffer(0.55, (d, sr, n) => {
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        const f = 4050 + 40 * Math.sin(t * tau * 7);
+        ph += (tau * f) / sr;
+        const env = Math.min(1, t / 0.03) * Math.pow(1 - t / 0.55, 1.4);
+        const trem = 0.75 + 0.25 * Math.sin(t * tau * 62);
+        d[i] = env * trem * (Math.sin(ph) + 0.1 * Math.sin(ph * 2));
+      }
+    });
+    // マツムシ「チンチロリン」
+    const matsu = buffer(0.75, (d, sr, n) => {
+      const notes = [[0, 0.07, 5200], [0.2, 0.045, 5000], [0.28, 0.045, 5000], [0.38, 0.3, 4900]];
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        let env = 0, f = 5000;
+        for (const [s, l, fr] of notes) {
+          if (t >= s && t < s + l) {
+            const k = (t - s) / l;
+            env = Math.min(1, k * 25) * Math.pow(1 - k, 1.5);
+            if (l > 0.2) env *= 0.7 + 0.3 * Math.sin(t * tau * 45);
+            f = fr;
+          }
+        }
+        ph += (tau * f) / sr;
+        d[i] = env * Math.sin(ph);
+      }
+    });
+    // 遠くのカネタタキ／草むらの「ジー」
+    const trill = buffer(1.6, (d, sr, n) => {
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        ph += (tau * 5600) / sr;
+        const pulse = (t * 48) % 1;
+        const env = (pulse < 0.5 ? Math.sin(pulse * 2 * Math.PI) : 0) * Math.sin((t / 1.6) * Math.PI);
+        d[i] = env * Math.sin(ph);
+      }
+    });
+    return { emma, suzu, matsu, trill };
+  }
+
+  function setupCrickets() {
+    const bufs = cricketBuffers();
+    const defs = [
+      ["suzu", 1.45, -0.55, 0.30, 9000],
+      ["suzu", 1.9, 0.62, 0.20, 7000],
+      ["emma", 2.6, 0.25, 0.26, 9000],
+      ["emma", 3.4, -0.8, 0.14, 5500],
+      ["matsu", 3.8, 0.85, 0.18, 8000],
+      ["matsu", 5.2, -0.3, 0.10, 5000],
+      ["trill", 1.7, -0.95, 0.06, 4800],
+      ["trill", 2.1, 0.9, 0.05, 4500],
+      ["suzu", 1.3, 0.05, 0.08, 4200],
+    ];
+    for (const [type, period, p, g, lp] of defs) {
+      const inNode = gain(g), pn = pan(p);
+      chain(inNode, filt("lowpass", lp), pn, buses.bugs);
+      const send = gain(0.35);
+      pn.connect(send); send.connect(reverb);
+      crickets.push({
+        buf: bufs[type], period, inNode,
+        rate: rr(0.97, 1.03),
+        next: ac.currentTime + rr(0.5, 4),
+        singing: true, boutEnd: ac.currentTime + rr(8, 40),
+      });
+    }
+  }
+
+  function scheduleCrickets(now) {
+    for (const c of crickets) {
+      if (now > c.boutEnd) {
+        c.singing = !c.singing;
+        c.boutEnd = now + (c.singing ? rr(12, 50) : rr(2, 12));
+      }
+      while (c.next < now + 0.4) {
+        if (c.singing) {
+          const s = ac.createBufferSource();
+          s.buffer = c.buf;
+          s.playbackRate.value = c.rate * rr(0.995, 1.005);
+          s.connect(c.inNode);
+          s.start(Math.max(c.next, ac.currentTime));
+        }
+        c.next += c.period * rr(0.88, 1.12);
+      }
+    }
+  }
+
+  function setupRiver() {
+    // 低いうなりと、せせらぎのざわめき
+    const rumble = loopSrc(brownBuf, 1.1);
+    chain(rumble, filt("lowpass", 380), gain(0.5), pan(-0.35), buses.river);
+    const wash = loopSrc(pinkBuf, 0.3);
+    chain(wash, filt("bandpass", 900, 0.6), gain(0.16), pan(-0.25), buses.river);
+    // ぽこぽこと変化する帯域（水が石にあたる音）
+    for (let i = 0; i < 5; i++) {
+      const src = loopSrc(noiseBuf, rr(0, 3.5));
+      const f = filt("bandpass", rr(400, 1400), rr(7, 14));
+      const g = gain(0);
+      chain(src, f, g, pan(rr(-0.85, 0.15)), buses.river);
+      babble.push({ f, g, next: 0 });
+    }
+  }
+
+  function scheduleRiver(now) {
+    for (const b of babble) {
+      if (now < b.next) continue;
+      b.f.frequency.setTargetAtTime(rr(320, 1700), now, rr(0.02, 0.1));
+      b.g.gain.setTargetAtTime(Math.pow(rand(), 2) * 0.5, now, rr(0.03, 0.12));
+      b.next = now + rr(0.05, 0.3);
+    }
+    // 泡がはじける小さな「ぽこっ」
+    if (rand() < 0.35) bubble(now + rr(0, 0.1));
+  }
+
+  function bubble(t) {
+    const o = ac.createOscillator();
+    const f0 = rr(500, 1300);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * rr(1.6, 2.4), t + 0.05);
+    const g = gain(0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(rr(0.01, 0.04), t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    chain(o, g, pan(rr(-0.8, 0)), buses.river);
+    o.start(t); o.stop(t + 0.08);
+  }
+
+  function setupWind() {
+    const src = loopSrc(pinkBuf, 2.2);
+    const bp = filt("bandpass", 400, 0.8);
+    const g = gain(0.05);
+    const p = pan(0);
+    chain(src, bp, g, p, buses.wind);
+    // 木の葉のざわめき
+    const leaf = loopSrc(noiseBuf, 1.3);
+    const hp = filt("highpass", 2600), lp = filt("lowpass", 7500);
+    const lg = gain(0);
+    chain(leaf, hp, lp, lg, pan(0.3), buses.wind);
+    const leaf2 = loopSrc(noiseBuf, 2.7);
+    const lg2 = gain(0);
+    chain(leaf2, filt("bandpass", 1800, 0.9), lg2, pan(-0.4), buses.wind);
+    windNodes = { bp, g, p, lg, lg2 };
+  }
+
+  function setupFire() {
+    const roar = loopSrc(brownBuf, 0.5);
+    const lp = filt("lowpass", 180);
+    const g = gain(0.4);
+    chain(roar, lp, g, buses.fire);
+    const breath = loopSrc(pinkBuf, 1.7);
+    const bp = filt("bandpass", 700, 0.5);
+    const bg = gain(0.03);
+    chain(breath, bp, bg, buses.fire);
+    fireNodes = { g, lp, bg };
+  }
+
+  function start() {
+    if (started) { ac.resume(); return; }
+    started = true;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = gain(0);
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 3;
+    chain(master, comp, ac.destination);
+    reverb = ac.createConvolver();
+    reverb.buffer = makeIR(3.2);
+    chain(reverb, gain(0.35), master);
+    for (const k of Object.keys(BUS_BASE)) {
+      buses[k] = gain(BUS_BASE[k] * mix[k]);
+      buses[k].connect(master);
+    }
+
+    noiseBuf = buffer(4, (d, sr, n) => { for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; });
+    brownBuf = buffer(6, (d, sr, n) => {
+      let l = 0;
+      for (let i = 0; i < n; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; }
+      seamless(d, n);
+    });
+    pinkBuf = buffer(6, (d, sr, n) => {
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < n; i++) {
+        const w = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+        b2 = 0.969 * b2 + w * 0.153852; b3 = 0.8665 * b3 + w * 0.3104856;
+        b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+        b6 = w * 0.115926;
+      }
+      seamless(d, n);
+    });
+
+    setupRiver();
+    setupWind();
+    setupFire();
+    setupCrickets();
+
+    master.gain.setValueAtTime(0, ac.currentTime);
+    master.gain.linearRampToValueAtTime(0.9, ac.currentTime + 5);
+
+    timer = setInterval(() => {
+      const now = ac.currentTime;
+      scheduleCrickets(now);
+      scheduleRiver(now);
+      micro(now);
+    }, 90);
+  }
+
+  // 細かいチリチリ音（常に鳴っている）
+  function micro(now) {
+    const n = Math.round(rr(0, 2.2) * state.intensity);
+    for (let i = 0; i < n; i++) click(now + rr(0.01, 0.09), rr(0.02, 0.08), rr(2500, 6000), rr(0.003, 0.009));
+  }
+
+  function click(t, amp, freq, dur) {
+    const s = ac.createBufferSource();
+    s.buffer = noiseBuf;
+    const f = filt("bandpass", freq, rr(0.7, 1.6));
+    const g = gain(0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(amp, t + 0.0012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const p = pan(rr(-0.3, 0.3));
+    chain(s, f, g, p, buses.fire);
+    s.start(t, rr(0, 3.8), dur + 0.02);
+    return p;
+  }
+
+  function crackle(strength, big, delay = 0) {
+    if (!started || muted) return;
+    const t = ac.currentTime + 0.01 + delay;
+    if (big) {
+      // 「パチッ」：中域の強い破裂＋高域のアタック
+      const p = click(t, 0.5 * strength, rr(900, 1700), rr(0.04, 0.09));
+      const send = gain(0.3); p.connect(send); send.connect(reverb);
+      click(t, 0.35 * strength, rr(3500, 6000), rr(0.01, 0.02));
+      if (rand() < 0.5) click(t + rr(0.01, 0.04), 0.25 * strength, rr(1200, 2500), rr(0.02, 0.05));
+    } else {
+      click(t, 0.25 * strength, rr(1500, 5000), rr(0.006, 0.025));
+    }
+  }
+
+  // つついた時の、薪が崩れて落ち着く音
+  function settle() {
+    if (!started || muted) return;
+    const t = ac.currentTime + 0.02;
+    const s = ac.createBufferSource();
+    s.buffer = brownBuf;
+    const g = gain(0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.8, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    chain(s, filt("lowpass", 600), g, buses.fire);
+    s.start(t, rr(0, 5), 0.5);
+  }
+
+  function update() {
+    if (!started) return;
+    const now = ac.currentTime;
+    if (now - lastParam < 0.05) return;
+    lastParam = now;
+    const gu = state.gust;
+    windNodes.g.gain.setTargetAtTime(0.03 + gu * gu * 0.55, now, 0.25);
+    windNodes.bp.frequency.setTargetAtTime(240 + gu * 520, now, 0.4);
+    if (windNodes.p.pan) windNodes.p.pan.setTargetAtTime(Math.sin(state.t * 0.05) * 0.5, now, 0.5);
+    const leaf = Math.pow(Math.max(0, gu - 0.3) / 0.7, 1.4);
+    const rustle = 0.7 + 0.3 * noise3(state.t * 3, 9, 0);
+    windNodes.lg.gain.setTargetAtTime(leaf * 0.09 * rustle, now, 0.15);
+    windNodes.lg2.gain.setTargetAtTime(leaf * 0.12 * rustle, now, 0.2);
+    fireNodes.g.gain.setTargetAtTime(0.28 + 0.3 * state.intensity * (0.8 + 0.2 * state.light), now, 0.1);
+    fireNodes.lp.frequency.setTargetAtTime(140 + 90 * state.intensity, now, 0.2);
+    fireNodes.bg.gain.setTargetAtTime(0.015 + 0.03 * state.intensity * (0.5 + 0.5 * noise3(state.t * 4, 3, 0)), now, 0.08);
+  }
+
+  function setMuted(m) {
+    muted = m;
+    if (!started) return;
+    master.gain.cancelScheduledValues(ac.currentTime);
+    master.gain.setTargetAtTime(m ? 0 : 0.9, ac.currentTime, 0.4);
+  }
+  function setMix(k, v) {
+    mix[k] = v;
+    if (started) buses[k].gain.setTargetAtTime(BUS_BASE[k] * v, ac.currentTime, 0.1);
+  }
+  function suspendIfHidden(hidden) {
+    if (!started) return;
+    if (hidden) ac.suspend(); else ac.resume();
+  }
+
+  return { start, crackle, settle, update, setMuted, setMix, suspendIfHidden, get muted() { return muted; } };
+})();
+
+/* =========================================================
+   メインループ
+   ========================================================= */
+let last = performance.now(), perfAvg = 16, perfCheck = 0;
+function frame(now) {
+  let dt = (now - last) / 1000;
+  last = now;
+  dt = Math.min(dt, 1 / 20);
+
+  // 重い端末では粒子と解像度を落とす
+  perfAvg = perfAvg * 0.95 + (dt * 1000) * 0.05;
+  perfCheck += dt;
+  if (perfCheck > 3) {
+    perfCheck = 0;
+    if (perfAvg > 26 && quality > 0.55) { quality = Math.max(0.55, quality - 0.15); if (quality < 0.8 && DPR > 1) resize(); }
+    else if (perfAvg < 18 && quality < 1) quality = Math.min(1, quality + 0.05);
+  }
+
+  step(dt, false);
+  audio.update();
+  render(dt);
+  requestAnimationFrame(frame);
+}
+
+function render(dt) {
+  const t = state.t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = 1;
+  ctx.drawImage(layers.sky, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawStars(t);
+  drawShootingStar(dt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layers.far, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawRiver(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layers.gnd, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawBankGrass(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layers.fg, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  drawFireLight();
+  for (const s of stones) if (s.back) drawStone(s);
+  drawSmoke();
+  for (const l of logs) if (!l.front) drawLog(l, t);
+  drawCoals(t);
+  for (const l of logs) if (l.front) drawLog(l, t);
+  drawFlames();
+  for (const s of stones) if (!s.back) drawStone(s);
+  drawSparks();
+  drawForegroundGrass(t);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layers.vig, 0, 0);
+}
+
+/* =========================================================
+   画面操作
+   ========================================================= */
+const intro = document.getElementById("intro");
+const controls = document.getElementById("controls");
+const mixer = document.getElementById("mixer");
+const hint = document.getElementById("hint");
+const btnSound = document.getElementById("btnSound");
+const btnMix = document.getElementById("btnMix");
+const btnFull = document.getElementById("btnFull");
+let begun = false, idleTimer = 0;
+
+function begin() {
+  if (begun) return;
+  begun = true;
+  audio.start();
+  intro.classList.add("gone");
+  controls.hidden = false;
+  setTimeout(() => { hint.classList.add("show"); }, 3000);
+  setTimeout(() => { hint.classList.remove("show"); }, 9000);
+  wake();
+}
+intro.addEventListener("click", begin);
+intro.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); begin(); } });
+
+canvas.addEventListener("pointerdown", () => {
+  if (!begun) return begin();
+  poke();
+});
+
+function wake() {
+  document.body.classList.remove("idle");
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (begun && !mixer.matches(":hover")) document.body.classList.add("idle");
+  }, 3000);
+}
+window.addEventListener("pointermove", wake);
+window.addEventListener("keydown", wake);
+
+btnSound.addEventListener("click", () => {
+  const m = !audio.muted;
+  audio.setMuted(m);
+  btnSound.setAttribute("aria-pressed", String(!m));
+  document.getElementById("waves").style.display = m ? "none" : "";
+});
+btnMix.addEventListener("click", () => {
+  mixer.hidden = !mixer.hidden;
+  btnMix.setAttribute("aria-pressed", String(!mixer.hidden));
+});
+mixer.addEventListener("input", (e) => {
+  const el = e.target;
+  if (el.dataset.bus) audio.setMix(el.dataset.bus, parseFloat(el.value));
+});
+btnFull.addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+});
+document.addEventListener("visibilitychange", () => audio.suspendIfHidden(document.hidden));
+
+let resizeT = 0;
+window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(resize, 150); });
+
+resize();
+requestAnimationFrame((t) => { last = t; frame(t); });
+</script>
+</body>
+</html>
