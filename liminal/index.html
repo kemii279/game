@@ -831,7 +831,7 @@ function lightAt(wx, wy) {
 // ---------- 描画 ----------
 const FOGN = 1024, FOGS = FOGN / MAXD;
 const fogLUT = new Float32Array(FOGN + 2);
-for (let i = 0; i <= FOGN + 1; i++) fogLUT[i] = Math.pow(Math.max(0, 1 - i / FOGN), 1.55);
+for (let i = 0; i <= FOGN + 1; i++) fogLUT[i] = Math.pow(Math.max(0, 1 - i / FOGN), 0.75);
 const vigShape = new Float32Array(W * H), cone = new Float32Array(W * H);
 for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
   const dx = (x - W / 2) / (W / 2), dy = (y - H / 2) / (H / 2);
