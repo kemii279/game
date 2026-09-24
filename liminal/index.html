@@ -175,7 +175,7 @@
     <p class="sub" id="ovSub">LIMINAL SPACE</p>
     <p class="lore" id="ovLore">眠りと目覚めのあいだに、ハザマがある。<br>ここでは何も食べなくていい。ただ、ひどく眠い。<br>眠りきったとき、あなたはこの部屋の一部になる。<br>現実から紛れこんだ<em>色のある異物</em>を七つ集めて、目を覚ませ。</p>
     <p class="go" id="go">クリックして入る</p>
-    <p class="keys" id="keys">WASD・矢印：歩く　マウス：見回す　Shift：走る　F：ライト<br>1：缶コーヒー　2：ミントガム　3：目薬　Q：つねる　E：メモを閉じる<br>ヘッドホン推奨</p>
+    <p class="keys" id="keys">体は勝手に前へ歩く。マウスで向きを変えるだけ<br>左クリック：物資を使う　右クリック：つねる　ホイール：ライト<br>（キーでも可　1 コーヒー　2 ガム　3 目薬　Q つねる　F ライト　E メモを閉じる）<br>ヘッドホン推奨</p>
   </div>
 </div>
 <script>
@@ -1430,8 +1430,11 @@ function updateSleep(dt, moving, running, z) {
   if (gs.over) return;
   // 何も持たずに歩きつづけると、約45秒で眠りに落ちる
   let rate = 100 / 45;
-  rate *= [1, 1, 0.85, 1.4][z];
-  rate *= moving ? (running ? 0.9 : 1) : 1.4;
+  // 暗い場所ほど眠い。真っ暗なら約20秒で限界。ライトや生きている蛍光灯の下なら普段どおり
+  const Lh = lightAt(pl.x, pl.y) + (gs.flashOn ? 0.35 : 0);
+  rate *= z === Z.POOL ? 0.85 : 1;
+  rate *= 1 + 1.25 * smooth(0.6, 0.15, Lh);
+  rate *= moving ? 1 : 1.4;          // 壁に向かって止まっていると、もっと眠い
   if (gs.sanity < 30) rate *= 1.25;
   if (gs.dropsT > 0) rate *= 0.4;
   rate *= 1 - 0.08 * gs.anchors.size;
@@ -1467,8 +1470,8 @@ function updateSleep(dt, moving, running, z) {
   }
   if (gs.sleep >= 100) endGame("assim");
 
-  if (d > 0.5) say("まぶたが重い。立ち止まると、もっと重くなる。", "s50");
-  if (d > 0.75) say("立ったまま眠りそうだ。［Q］で自分をつねれば、少しは……", "s75", 5200);
+  if (d > 0.5) say("まぶたが重い。壁にぶつかって止まると、もっと重くなる。", "s50");
+  if (d > 0.75) say("歩きながら眠りそうだ。右クリックで自分をつねれば、少しは……", "s75", 5200);
   if (d > 0.9) say("壁の模様が、呼吸している。", "s90");
   if (gs.sanity < 62) say("壁に何か書いてある。さっきまでなかった。", "m60");
   if (gs.sanity < 40) say("色のあるものが、本物とは限らない。", "m40");
@@ -1568,7 +1571,7 @@ function pickUp(it) {
   }
   if (it.kind === "flash") {
     gs.hasFlash = true; gs.bat = 90;
-    say("懐中電灯を拾った。［F］でつける。\n乾電池は、どこかに落ちているはずだ。", null, 5500);
+    say("懐中電灯を拾った。ホイールでつける。\n乾電池は、どこかに落ちているはずだ。", null, 5500);
     chime(1320, 0, 0.08); refreshInv(); return;
   }
   if (it.kind === "anchor") {
@@ -1718,25 +1721,25 @@ function update(dt) {
   const t = st.t;
   st.fade = Math.min(1, st.fade + dt / 2.6);
   const fall = Math.max(0, 1 - t / 1.1);
-  let fwd = 0, strafe = 0, turn = 0;
+  // 何も押さなくても、体は前へ歩きつづける。変えられるのは向きだけ
+  let fwd = gs.over ? 0 : 1, turn = 0;
   if (!gs.over) {
-    if (keys.has("KeyW") || keys.has("ArrowUp")) fwd += 1;
-    if (keys.has("KeyS") || keys.has("ArrowDown")) fwd -= 1;
-    if (keys.has("KeyA")) strafe -= 1;
-    if (keys.has("KeyD")) strafe += 1;
-    if (keys.has("ArrowLeft")) turn -= 1;
-    if (keys.has("ArrowRight")) turn += 1;
-    if (touch.walk) fwd = 1;
+    if (keys.has("KeyA") || keys.has("ArrowLeft")) turn -= 1;
+    if (keys.has("KeyD") || keys.has("ArrowRight")) turn += 1;
+    // ポインタロックが使えないときは、カーソルが画面の中心からどれだけずれているかで曲がる
+    if (steer.on && document.pointerLockElement !== cvs) {
+      const o = steer.x, dz = 0.12;
+      if (Math.abs(o) > dz) turn += Math.sign(o) * (Math.abs(o) - dz) / (1 - dz) * 1.15;
+    }
   }
-  if (blink.lid >= 1) { fwd = 0; strafe = 0; turn = 0; }
+  if (blink.lid >= 1) { fwd = 0; turn = 0; }
   pl.a += turn * 1.9 * dt;
-  const run = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const run = false;
   const d = gs.sleep / 100;
-  const sp = (run ? 2.7 : 1.55) * (1 - 0.4 * Math.max(0, d - 0.3)) * dt;
-  const len = Math.hypot(fwd, strafe) || 1;
+  const sp = 1.55 * (1 - 0.4 * Math.max(0, d - 0.3)) * dt;
   const cx = Math.cos(pl.a), sy = Math.sin(pl.a);
   const ox0 = pl.x, oy0 = pl.y;
-  if (fwd || strafe) tryMove(pl.x + (cx * fwd - sy * strafe) / len * sp, pl.y + (sy * fwd + cx * strafe) / len * sp);
+  if (fwd) tryMove(pl.x + cx * sp, pl.y + sy * sp);
   const moved = Math.hypot(pl.x - ox0, pl.y - oy0);
   st.dist += moved;
   const z = zoneHere();
@@ -1762,9 +1765,9 @@ function update(dt) {
 
   if (!seenZone.has(z)) {
     seenZone.add(z);
-    say(["", "排気ガスの匂いがする。", "塩素の匂いがする。水の音はしない。", "この区画には電気が来ていない。眠気が、濃い。"][z], "z" + z);
+    say(["", "排気ガスの匂いがする。", "塩素の匂いがする。水の音はしない。", "この区画には電気が来ていない。眠気が、濃い。長くはいられない。"][z], "z" + z);
   }
-  if (t > 2) say("お腹は空かない。ただ、ひどく眠い。\n緑の粒を拾いながら歩け。ポケットには缶コーヒーが1本［1］。", "intro", 6000);
+  if (t > 2) say("お腹は空かない。ただ、ひどく眠い。\n足が勝手に前へ進む。緑の粒を拾いながら歩け。\nポケットには缶コーヒーが1本。左クリックで飲める。", "intro", 6000);
   if (st.dist * 1.5 > 260) say("同じ部屋を、もう何度も通った気がする。", "loop");
 
   // 懐中電灯
@@ -1937,12 +1940,40 @@ document.addEventListener("pointerlockchange", () => {
   if (document.pointerLockElement === cvs) lockedOnce = true;
 });
 cvs.addEventListener("click", () => { if (st.started && !st.running && !gs.over) start(); });
+const steer = { on: false, x: 0 };
 addEventListener("mousemove", (e) => {
   if (!st.running || gs.over) return;
-  if (document.pointerLockElement !== cvs && !(e.buttons & 1)) return;
+  if (document.pointerLockElement !== cvs) {
+    const r = cvs.getBoundingClientRect();
+    steer.on = true;
+    steer.x = clamp((e.clientX - (r.left + r.width / 2)) / (r.width / 2), -1, 1);
+    return;
+  }
+  steer.on = false;
   pl.a += e.movementX * 0.0024;
   pl.pitch = clamp(pl.pitch - e.movementY * 0.25, -48, 48);
 });
+// マウスだけで遊べるように：左クリック＝そのとき一番いい物資を使う、右クリック＝つねる、ホイール＝ライト
+function useBest() {
+  const iv = gs.inv;
+  if (gs.sleep >= 35 && iv.coffee) useItem("coffee");
+  else if (iv.gum) useItem("gum");
+  else if (iv.coffee) useItem("coffee");
+  else if (iv.drops) useItem("drops");
+  else say("使えるものを、何も持っていない。", null, 2000);
+}
+cvs.addEventListener("mousedown", (e) => {
+  if (!st.running || gs.over) return;
+  if (e.button === 0) useBest();
+  if (e.button === 2) pinch();
+});
+cvs.addEventListener("contextmenu", (e) => e.preventDefault());
+let wheelT = 0;
+addEventListener("wheel", (e) => {
+  if (!st.running || gs.over) return;
+  const now = performance.now();
+  if (now - wheelT > 400) { wheelT = now; useItem("flash"); }
+}, { passive: true });
 addEventListener("keydown", (e) => {
   if (!st.running) return;
   keys.add(e.code);
@@ -1974,7 +2005,7 @@ cvs.addEventListener("touchmove", (e) => {
 cvs.addEventListener("touchend", (e) => {
   for (const t of e.changedTouches) if (t.identifier === touch.id) { touch.walk = false; touch.id = null; }
 });
-if (!hasLock) $("keys").innerHTML = "押しているあいだ前へ歩く・なぞって向きを変える<br>右下のボタンで物資を使う・つねる<br>ヘッドホン推奨";
+if (!matchMedia("(pointer: fine)").matches) $("keys").innerHTML = "体は勝手に前へ歩く。なぞって向きを変えるだけ<br>右下のボタンで物資を使う・つねる<br>ヘッドホン推奨";
 
 buildInv();
 refreshAnchors();
