@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ハザマ — LIMINAL</title>
+<title>ハザマ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
@@ -993,6 +993,7 @@ function fit() {
 }
 addEventListener("resize", fit); fit();
 
+let lockedOnce = false;
 const hasLock = "requestPointerLock" in cvs && matchMedia("(pointer: fine)").matches;
 function start() {
   initAudio();
@@ -1002,7 +1003,13 @@ function start() {
     setTimeout(() => { burst({ freq: 200, vol: 0.9, dur: 0.35 }); }, 900);
   }
   $("hud").hidden = false;
-  if (hasLock) cvs.requestPointerLock(); else resume();
+  if (!hasLock) { resume(); return; }
+  // ポインタロックが使えない環境（埋め込み表示など）では、ドラッグで見回す
+  try {
+    const r = cvs.requestPointerLock();
+    if (r && r.catch) r.catch(() => resume());
+  } catch (e) { resume(); }
+  setTimeout(() => { if (!st.running && document.pointerLockElement !== cvs) resume(); }, 400);
 }
 function resume() { st.running = true; $("overlay").hidden = true; last = performance.now(); if (au.ac) au.ac.resume(); }
 function pause() {
@@ -1013,11 +1020,13 @@ function pause() {
 }
 $("overlay").addEventListener("click", start);
 document.addEventListener("pointerlockchange", () => {
-  if (document.pointerLockElement === cvs) resume(); else if (st.running) pause();
+  if (document.pointerLockElement === cvs) resume(); else if (st.running && lockedOnce) pause();
+  if (document.pointerLockElement === cvs) lockedOnce = true;
 });
 cvs.addEventListener("click", () => { if (st.started && !st.running) start(); });
 addEventListener("mousemove", (e) => {
-  if (!st.running || document.pointerLockElement !== cvs) return;
+  if (!st.running) return;
+  if (document.pointerLockElement !== cvs && !(e.buttons & 1)) return;
   pl.a += e.movementX * 0.0024;
   pl.pitch = Math.max(-48, Math.min(48, pl.pitch - e.movementY * 0.25));
 });
