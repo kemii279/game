@@ -402,7 +402,6 @@ body {
 .nest.p { background: var(--bm-padding); padding: 7mm; }
 .nest.c { background: var(--bm-content); padding: 5mm 9mm; font-family: var(--mono); font-weight: 600; font-size: 12pt; text-align: center; }
 .cover-sub { font-size: 9.5pt; color: var(--ink-2); text-align: center; }
-.cover-author { display: flex; justify-content: space-between; font-size: 9pt; border-top: 0.6mm solid var(--ink); padding-top: 2mm; }
 
 /* ===== 目次（部品マップ） ===== */
 .toc-title { font-size: 15pt; font-weight: 900; }
@@ -775,16 +774,6 @@ body {
 .lane-steps .to { align-self: center; color: var(--ink-3); font-size: 10pt; }
 .lane-gap { text-align: center; font-size: 8pt; color: var(--ink-2); line-height: 1; }
 
-/* ===== 奥付 ===== */
-.colophon { justify-content: flex-end; }
-.colo-box { border-top: 0.6mm solid var(--ink); padding-top: 3mm; font-size: 8.5pt; }
-.colo-box h2 { font-size: 11pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.4; }
-.colo-box dl { display: grid; grid-template-columns: 18mm 1fr; row-gap: 1mm; }
-.colo-box dt { color: var(--ink-2); }
-.colo-note { margin-top: 4mm; font-size: 7.5pt; color: var(--ink-2); line-height: 1.6; }
-.afterword h2 { font-size: 13pt; font-weight: 900; margin-bottom: 2mm; }
-.afterword p { font-size: 10pt; line-height: 1.7; }
-.next-vol { margin-top: 6mm; }
 
 /* ===== 品質チェック表示（画面のみ） ===== */
 .qa-panel {
@@ -823,7 +812,6 @@ body {
     <div class="nest m"><div class="nest b"><div class="nest p"><div class="nest c">&lt;div&gt;</div></div></div></div>
   </div>
   <p class="cover-sub">部品の名前20語と、そのまま使える指示文</p>
-  <div class="cover-author"><span>著者名</span><span>サークル名</span></div>
 </section>
 
 <!-- ============ 2p はじめに ============ -->
@@ -875,7 +863,7 @@ body {
     <dl class="scenes">
       <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」とAIに頼めば、Electron を使って<b>パソコン用アプリ</b>にしてくれる。画面の注文は、この本の言葉でできる。</dd>
       <dt>不具合を伝える</dt><dd><span class="vague">「左の、開くやつが動かない」</span><br>→ 「左の<b>アコーディオン</b>が開かない」</dd>
-      <dt>社内ツールを直す</dt><dd><span class="vague">「保存できたか分からない」</span><br>→ 「保存したら<b>トースト</b>で知らせて」</dd>
+      <dt>社内ツールを直す</dt><dd><span class="vague">「保存できたかわからない」</span><br>→ 「保存したら<b>トースト</b>で知らせて」</dd>
     </dl>
   </div>
   <p class="tryit"><strong>試してみよう</strong><span>Chrome でいつものサイトを開き、右クリック →［検証］。画面の横に、そのページの部品の一覧が出てくる。部品にマウスを乗せると、画面のどこかが光る。</span></p>
@@ -1206,7 +1194,7 @@ dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
   <div>
     <h3 class="sub-h">こうする理由</h3>
     <ul class="bullets">
-      <li>本番では、今あるCSS・ログイン・データの読み込みなどが絡み、崩れの原因が見た目なのか別の所なのか分からなくなる。モックはそれらを切り離し、<b>見た目だけ</b>を確かめられる</li>
+      <li>本番では、今あるCSS・ログイン・データの読み込みなどが絡み、崩れの原因が見た目なのか別の所なのかわからなくなる。モックはそれらを切り離し、<b>見た目だけ</b>を確かめられる</li>
       <li>見た目の正解はモックで確定済み。本番でずれたら、原因は<b>本番側</b>にあると切り分けられる</li>
       <li>本番にはスクショと一緒にモックのコードも渡す。見た目はもう実装済みなので、AIは本番に合わせて組み直すだけ。ずれたら、<b>組み直した所</b>を見ればいい</li>
     </ul>
@@ -1214,27 +1202,6 @@ dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
   <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">26</span></footer>
 </section>
 
-<!-- ============ 27p あとがき・奥付 ============ -->
-<section class="page colophon" data-page="27" data-kind="colophon">
-  <div class="afterword">
-    <h2>あとがき</h2>
-    <p>ここに、この本を作ったきっかけや、読んだ人に伝えたいことを3〜5行で書きます。</p>
-    <div class="card column next-vol"><h3>Vol.2 予告</h3><p>フォームまわり（プレースホルダー・バリデーション）、ツールチップ、スピナー、スケルトン、ページネーション、ファビコン</p></div>
-  </div>
-  <div style="flex:1"></div>
-  <div class="colo-box">
-    <h2>AIへの指示が一発で通る Webサイト用語図解帳 Vol.1</h2>
-    <dl>
-      <dt>発行日</dt><dd>2026年10月　初版</dd>
-      <dt>著者</dt><dd>著者名</dd>
-      <dt>発行</dt><dd>サークル名</dd>
-      <dt>連絡先</dt><dd>X：@your_id</dd>
-      <dt>フォント</dt><dd>Noto Sans JP ／ JetBrains Mono（SIL Open Font License）</dd>
-    </dl>
-    <p class="colo-note">本書の内容の無断転載・再配布を禁じます。<br>掲載のコードは自由に使えます。内容は執筆時点の情報です。</p>
-  </div>
-  <footer class="page-foot"><span>奥付</span><span class="nombre">27</span></footer>
-</section>
 
 <script>window.Prism = { manual: true };</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
