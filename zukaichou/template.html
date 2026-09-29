@@ -1181,11 +1181,11 @@ dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
         <div class="st"><span class="badge">2</span><span>ブラウザで見て、部品の名前で直す</span></div>
       </div>
     </div>
-    <p class="lane-gap">▼ 見た目がOKになったら、画面をスクショ</p>
+    <p class="lane-gap">▼ 見た目がOKになったら、スクショとモックのコードを持っていく</p>
     <div class="lane prod">
       <h4>本番プロジェクト</h4>
       <div class="lane-steps">
-        <div class="st"><span class="badge">3</span><span>スクショを本番のAIに見せる</span></div>
+        <div class="st"><span class="badge">3</span><span>スクショとコードを本番のAIに渡す</span></div>
         <span class="to">→</span>
         <div class="st"><span class="badge">4</span><span>今のコードのルールで実装してもらう</span></div>
         <span class="to">→</span>
@@ -1200,7 +1200,7 @@ dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
     </div>
     <div class="card ok">
       <h3>○ 本番に頼む</h3>
-      <p class="say">「この画像と同じ見た目で予約ページを作って。今あるボタンとCSSを使い、新しい色は増やさないで」</p>
+      <p class="say">「このモックのコードと画像をもとに予約ページを作って。見た目はモックどおりに、ボタンとCSSは今あるものに合わせて」</p>
     </div>
   </div>
   <div>
@@ -1208,7 +1208,7 @@ dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
     <ul class="bullets">
       <li>本番では、今あるCSS・ログイン・データの読み込みなどが絡み、崩れの原因が見た目なのか別の所なのか分からなくなる。モックはそれらを切り離し、<b>見た目だけ</b>を確かめられる</li>
       <li>見た目の正解はモックで確定済み。本番でずれたら、原因は<b>本番側</b>にあると切り分けられる</li>
-      <li>本番にはモックのコードを貼らず、画像だけを見せる。コードが混ざると、ずれの原因がモックか本番か、また分けられなくなる</li>
+      <li>本番にはスクショと一緒にモックのコードも渡す。見た目はもう実装済みなので、AIは本番に合わせて組み直すだけ。ずれたら、<b>組み直した所</b>を見ればいい</li>
     </ul>
   </div>
   <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">26</span></footer>
