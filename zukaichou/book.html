@@ -868,12 +868,12 @@ body {
         <p class="lg-note">番号は、この本で図解している用語の番号。</p>
       </div>
     </div>
-    <figcaption class="zu-cap">Slack や Notion などのパソコン用アプリは、じつは Webページをアプリの形に包んだもの。<br>この作り方を <b>Electron（エレクトロン）</b>という。だから部品も、Webサイトと同じ。</figcaption>
+    <figcaption class="zu-cap">Slack や Notion などのパソコン用アプリは、じつは Webページをアプリの形に包んだもの。<br>アプリにするときは <b>Electron（エレクトロン）</b>という道具を使う。<br>だから部品も、Webサイトと同じ。</figcaption>
   </figure>
   <div>
     <h3 class="sub-h">こんな場面で、名前が効く</h3>
     <dl class="scenes">
-      <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」とAIに頼めば、同じ Electron のしくみで<b>パソコン用アプリ</b>にしてくれる。画面の注文は、この本の言葉でできる。</dd>
+      <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」とAIに頼めば、Electron を使って<b>パソコン用アプリ</b>にしてくれる。画面の注文は、この本の言葉でできる。</dd>
       <dt>不具合を伝える</dt><dd><span class="vague">「左の、開くやつが動かない」</span><br>→ 「左の<b>アコーディオン</b>が開かない」</dd>
       <dt>社内ツールを直す</dt><dd><span class="vague">「保存できたか分からない」</span><br>→ 「保存したら<b>トースト</b>で知らせて」</dd>
     </dl>
@@ -1791,7 +1791,7 @@ setTimeout(() =&gt; toast.classList.remove('show'), 3000);</code></pre>
   <p class="hitokoto">試行錯誤は<em>モック</em>で。本番には完成形だけを渡す。</p>
   <figure class="tip-fig">
     <div class="lane">
-      <h4>モック用（使い捨ての別プロジェクト）</h4>
+      <h4>モック用（本番から切り離した別プロジェクト）</h4>
       <div class="lane-steps">
         <div class="st"><span class="badge">1</span><span>AIに見た目だけのモックを作ってもらう</span></div>
         <span class="to">→</span>
@@ -1813,7 +1813,7 @@ setTimeout(() =&gt; toast.classList.remove('show'), 3000);</code></pre>
   <div class="pair">
     <div class="card ok">
       <h3>○ モック用に頼む</h3>
-      <p class="say">「予約ページの見た目だけのモックを、1つのHTMLファイルで作って。保存などの動きはいらない」</p>
+      <p class="say">「予約ページの見た目だけのモックを、1つのHTMLファイルで作って。本番のCSSやデータは使わず、文字は仮のものでいい」</p>
     </div>
     <div class="card ok">
       <h3>○ 本番に頼む</h3>
@@ -1823,9 +1823,9 @@ setTimeout(() =&gt; toast.classList.remove('show'), 3000);</code></pre>
   <div>
     <h3 class="sub-h">こうする理由</h3>
     <ul class="bullets">
-      <li>本番のコードが、試しては消す書き直しで散らからない</li>
+      <li>本番では、今あるCSS・ログイン・データの読み込みなどが絡み、崩れの原因が見た目なのか別の所なのか分からなくなる。モックはそれらを切り離し、<b>見た目だけ</b>を確かめられる</li>
       <li>見た目の正解が画像で決まるので、AIの答えがぶれにくい</li>
-      <li>本番にはモックのコードを貼らず、画像だけを見せる。書き方が本番とずれて、混ざるのを防ぐ</li>
+      <li>本番にはモックのコードを貼らず、画像だけを見せる。モックは本番の仕組みを抜いて作ったものなので、そのまま貼ると本番とかみ合わない</li>
     </ul>
   </div>
   <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">26</span></footer>
