@@ -661,12 +661,39 @@ body {
 
 /* ===== はじめに ===== */
 .intro .tip-head .term-name { font-size: 15pt; }
-.hub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4mm; }
-.hub-card { background: #fff; border: 0.3mm solid var(--line); border-radius: 1.5mm; padding: 2mm 2.4mm; font-size: 7.5pt; line-height: 1.45; color: var(--ink-2); }
-.hub-card b { display: block; font-size: 9pt; font-weight: 900; color: var(--ink); margin-bottom: 0.6mm; }
-.hub-core { grid-column: 1 / -1; background: var(--accent); color: #fff; border-radius: 1.5mm; padding: 2.6mm 3mm; display: flex; align-items: baseline; justify-content: center; gap: 3mm; flex-wrap: wrap; }
-.hub-core b { font-family: var(--mono); font-size: 11pt; font-weight: 600; }
-.hub-core span { font-size: 8pt; }
+/* 2p：デスクトップアプリの透視図 */
+.xray { display: grid; grid-template-columns: 1fr 40mm; gap: 3mm; align-items: stretch; }
+.app { position: relative; border: 0.4mm solid var(--ink-3); border-radius: 2mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; min-height: 52mm; font-size: 6.5pt; line-height: 1.3; }
+.app-bar { display: flex; align-items: center; gap: 1mm; padding: 1.2mm 2mm; background: #eceff2; border-bottom: 0.3mm solid var(--line); color: var(--ink-2); }
+.app-bar i { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: #c3c8cf; }
+.app-bar span { margin-left: 1.5mm; }
+.app-body { flex: 1; display: grid; grid-template-columns: 17mm 1fr; }
+.app-side { background: #2c3440; color: #cfd5dc; padding: 2mm 1.6mm; display: grid; align-content: start; gap: 0.8mm; }
+.app-side .sec { color: #fff; font-weight: 700; }
+.app-side .ch { padding-left: 1.6mm; }
+.app-side .ch.on { background: var(--accent); color: #fff; border-radius: 0.6mm; }
+.app-main { position: relative; display: flex; flex-direction: column; }
+.app-tabs { display: flex; gap: 2.4mm; padding: 1.4mm 2mm 0; border-bottom: 0.3mm solid var(--line); color: var(--ink-2); }
+.app-tabs span { padding-bottom: 0.8mm; }
+.app-tabs .on { color: var(--ink); font-weight: 700; border-bottom: 0.5mm solid var(--accent); }
+.app-msgs { flex: 1; padding: 2.4mm 2mm; display: grid; align-content: start; gap: 2.8mm; }
+.msg { display: grid; grid-template-columns: 3.6mm 1fr; gap: 1.4mm; align-items: start; }
+.msg i { width: 3.6mm; height: 3.6mm; border-radius: 0.8mm; background: #d3d9df; }
+.msg b { display: block; height: 1.4mm; margin: 0.3mm 0 0.8mm; background: #e3e7eb; border-radius: 0.6mm; }
+.app-toast { position: absolute; left: 50%; bottom: 2.4mm; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 3mm; padding: 1mm 2.6mm; white-space: nowrap; }
+.xray .badge { position: absolute; background: var(--warn); box-shadow: 0 0 0 0.5mm #fff; }
+.devtools { background: var(--code-bg); border: 0.3mm solid var(--code-edge); border-radius: 2mm; padding: 2mm 2.2mm; font-family: var(--mono); font-size: 6.2pt; line-height: 1.55; color: var(--ink-2); display: flex; flex-direction: column; gap: 1.6mm; }
+.devtools .dt-title { font-family: var(--font); font-weight: 900; font-size: 7pt; color: var(--ink); }
+.devtools p { display: flex; align-items: center; gap: 1.2mm; white-space: nowrap; }
+.devtools .badge { position: static; box-shadow: none; }
+.devtools .dt-note { margin-top: auto; font-family: var(--font); font-size: 6.8pt; line-height: 1.45; white-space: normal; }
+.scenes { display: grid; grid-template-columns: auto 1fr; gap: 1.6mm 3mm; font-size: 9pt; line-height: 1.5; }
+.scenes dt { font-weight: 900; color: var(--accent); white-space: nowrap; }
+.scenes dd { text-wrap: pretty; }
+.scenes .vague { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--warn); }
+.scenes b { font-weight: 900; background: linear-gradient(transparent 60%, var(--accent-marker) 60%); }
+.tryit { display: flex; gap: 2.5mm; align-items: baseline; font-size: 8.5pt; line-height: 1.5; background: #f7f8fa; border-radius: 1.5mm; padding: 1.8mm 3mm; }
+.tryit strong { flex: none; font-weight: 900; color: var(--accent); }
 .bullets b { font-weight: 900; }
 
 /* ===== 付録：AIを使いこなす知恵 ===== */
@@ -801,40 +828,56 @@ body {
 <!-- ============ 2p はじめに ============ -->
 <section class="page intro" data-page="2" data-kind="intro">
   <header class="tip-head">
-    <div><p class="term-yomi">この本を読む前に</p><h2 class="term-name">毎日使うアプリも、画面はWeb技術でできている</h2></div>
+    <div><p class="term-yomi">この本を読む前に</p><h2 class="term-name">いつものアプリも、中身はWebページ</h2></div>
     <span class="term-chapter">はじめに</span>
   </header>
-  <p class="hitokoto">部品の名前を覚えると、<em>Webサイト以外の画面</em>もAIに頼めるようになる。</p>
+  <p class="hitokoto">Slack も VS Code も、<em>この本の部品</em>で組み立てられている。</p>
   <figure class="tip-fig">
-    <div class="hub">
-      <div class="hub-card"><b>Webサイト</b>お店や会社のサイト、ネットショップ</div>
-      <div class="hub-card"><b>デスクトップアプリ</b>VS Code・Slack・Discord・Figma・Notion</div>
-      <div class="hub-card"><b>業務ツール</b>予約管理、社内システムの管理画面</div>
-      <div class="hub-core"><b>HTML・CSS・JavaScript</b><span>どれも画面の中身は、この本で扱う Web技術</span></div>
-      <div class="hub-card"><b>スマホアプリの中</b>お知らせ・ヘルプ・キャンペーンのページ</div>
-      <div class="hub-card"><b>ブラウザ拡張</b>Chromeの拡張機能の画面</div>
-      <div class="hub-card"><b>テレビのアプリ</b>スマートテレビのアプリ画面</div>
+    <div class="xray">
+      <div class="app">
+        <div class="app-bar"><i></i><i></i><i></i><span>チャットアプリ — # お知らせ</span></div>
+        <div class="app-body">
+          <div class="app-side">
+            <span class="sec">▾ チャンネル</span>
+            <span class="ch on"># お知らせ</span>
+            <span class="ch"># 雑談</span>
+            <span class="sec">▸ DM</span>
+            <span class="sec">▸ アプリ</span>
+          </div>
+          <div class="app-main">
+            <div class="app-tabs"><span class="on">メッセージ</span><span>ファイル</span><span>ピン留め</span></div>
+            <div class="app-msgs">
+              <div class="msg"><i></i><div><b style="width:40%"></b><b></b></div></div>
+              <div class="msg"><i></i><div><b style="width:30%"></b><b style="width:85%"></b></div></div>
+              <div class="msg"><i></i><div><b style="width:45%"></b><b></b><b style="width:60%"></b></div></div>
+              <div class="msg"><i></i><div><b style="width:35%"></b><b style="width:75%"></b></div></div>
+            </div>
+            <span class="app-toast">リンクをコピーしました</span>
+          </div>
+        </div>
+        <span class="badge" style="left:11.5mm; top:17.6mm">14</span>
+        <span class="badge" style="right:2mm; top:6.2mm">15</span>
+        <span class="badge" style="right:3mm; bottom:2.6mm">17</span>
+      </div>
+      <div class="devtools">
+        <span class="dt-title">開発者ツールで見ると</span>
+        <p><span class="badge">14</span>&lt;details&gt;</p>
+        <p><span class="badge">15</span>&lt;div role="tab"&gt;</p>
+        <p><span class="badge">17</span>&lt;div class="toast"&gt;</p>
+        <p class="dt-note">14 アコーディオン、15 タブ、17 トースト。Webサイトと同じ部品が、そのまま使われている。</p>
+      </div>
     </div>
-    <figcaption class="zu-cap">見た目は違っても、画面を作る部品と言葉は同じ。この本の20語がそのまま通じる。</figcaption>
+    <figcaption class="zu-cap">Slack・Discord・VS Code・Notion・Figma のデスクトップ版は <b>Electron</b> 製。<br>アプリの形をしているが、中では Chrome と同じエンジンが Webページを表示している。</figcaption>
   </figure>
   <div>
-    <h3 class="sub-h">この言葉を覚える3つの理由</h3>
-    <ul class="bullets">
-      <li>一度覚えれば、サイトにもアプリにも通じる<b>共通語</b>になる</li>
-      <li>Web技術は公開された実例や解説がとても多く、AIの得意分野。名前で頼むほど答えが正確になる</li>
-      <li>名前がわかれば、AIの答えを自分で検索して確かめられる</li>
-    </ul>
+    <h3 class="sub-h">こんな場面で、名前が効く</h3>
+    <dl class="scenes">
+      <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」と頼めば、AIが Electron で<b>デスクトップアプリ</b>に仕上げる。画面の注文は、この本の言葉のまま。</dd>
+      <dt>不具合を伝える</dt><dd><span class="vague">「左の、開くやつが動かない」</span><br>→ 「サイドバーの<b>アコーディオン</b>が開かない」</dd>
+      <dt>社内ツールを直す</dt><dd><span class="vague">「保存できたか分からない」</span><br>→ 「保存したら<b>トースト</b>で知らせて」</dd>
+    </dl>
   </div>
-  <div class="pair">
-    <div class="card column">
-      <h3>ミニ知識：Electron</h3>
-      <p>VS Code や Slack は、Electron という仕組みで作られている。中身は Chrome と同じエンジンで動く Webページ。</p>
-    </div>
-    <div class="card column">
-      <h3>試してみよう</h3>
-      <p>VS Code で［ヘルプ］→［開発者ツールの切り替え］を開くと、Chrome と同じ開発者ツールが出てくる。</p>
-    </div>
-  </div>
+  <p class="tryit"><strong>試してみよう</strong><span>VS Code で［ヘルプ］→［開発者ツールの切り替え］。Chrome と同じ開発者ツールが開き、見慣れた画面が HTML の部品に分かれて見える。</span></p>
   <footer class="page-foot"><span>はじめに</span><span class="nombre">2</span></footer>
 </section>
 
