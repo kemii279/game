@@ -377,7 +377,7 @@ def main():
         else:
             raise SystemExit(f"用語 {no:02d} のデータがありません")
     out = src[:found[0].start()] + "\n".join(pages) + "\n" + src[found[-1].end():]
-    out = out.replace("<title>AI指示 図解帳</title>", "<title>AI指示 図解帳 本文</title>", 1)
+    out = out.replace("<title>AIへの指示が一発で通る Webサイト用語図解帳（見本）</title>", "<title>AIへの指示が一発で通る Webサイト用語図解帳</title>", 1)
     open(os.path.join(HERE, "book.html"), "w", encoding="utf-8", newline="\n").write(out)
     print("book.html:", len(pages), "語")
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI指示 図解帳 本文</title>
+<title>AIへの指示が一発で通る Webサイト用語図解帳</title>
 <!--
   『AIへの指示が一発で通る Webサイト用語図解帳』ページひな形
   - 1 <section class="page"> = A5 1ページ。ブラウザの「印刷 → PDFに保存」でそのまま書き出せます
@@ -662,7 +662,7 @@ body {
 /* ===== はじめに ===== */
 .intro .tip-head .term-name { font-size: 15pt; }
 /* 2p：デスクトップアプリの透視図 */
-.xray { display: grid; grid-template-columns: 1fr 40mm; gap: 3mm; align-items: stretch; }
+.xray { display: grid; grid-template-columns: 1fr 44mm; gap: 3mm; align-items: stretch; }
 .app { position: relative; border: 0.4mm solid var(--ink-3); border-radius: 2mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; min-height: 52mm; font-size: 6.5pt; line-height: 1.3; }
 .app-bar { display: flex; align-items: center; gap: 1mm; padding: 1.2mm 2mm; background: #eceff2; border-bottom: 0.3mm solid var(--line); color: var(--ink-2); }
 .app-bar i { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: #c3c8cf; }
@@ -682,11 +682,12 @@ body {
 .msg b { display: block; height: 1.4mm; margin: 0.3mm 0 0.8mm; background: #e3e7eb; border-radius: 0.6mm; }
 .app-toast { position: absolute; left: 50%; bottom: 2.4mm; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 3mm; padding: 1mm 2.6mm; white-space: nowrap; }
 .xray .badge { position: absolute; background: var(--warn); box-shadow: 0 0 0 0.5mm #fff; }
-.devtools { background: var(--code-bg); border: 0.3mm solid var(--code-edge); border-radius: 2mm; padding: 2mm 2.2mm; font-family: var(--mono); font-size: 6.2pt; line-height: 1.55; color: var(--ink-2); display: flex; flex-direction: column; gap: 1.6mm; }
-.devtools .dt-title { font-family: var(--font); font-weight: 900; font-size: 7pt; color: var(--ink); }
-.devtools p { display: flex; align-items: center; gap: 1.2mm; white-space: nowrap; }
-.devtools .badge { position: static; box-shadow: none; }
-.devtools .dt-note { margin-top: auto; font-family: var(--font); font-size: 6.8pt; line-height: 1.45; white-space: normal; }
+.legend { background: #fff; border: 0.3mm solid var(--line); border-radius: 2mm; padding: 2.4mm 2.4mm; display: flex; flex-direction: column; gap: 2.2mm; font-size: 7.5pt; line-height: 1.4; }
+.legend .lg-title { font-weight: 900; font-size: 7.5pt; color: var(--ink); }
+.legend p { display: grid; grid-template-columns: auto 1fr; gap: 0 1.6mm; align-items: start; color: var(--ink-2); }
+.legend p b { grid-column: 2; font-weight: 900; color: var(--ink); font-size: 8pt; }
+.legend .badge { position: static; box-shadow: none; grid-row: span 2; }
+.legend .lg-note { margin-top: auto; font-size: 7pt; color: var(--ink-2); }
 .scenes { display: grid; grid-template-columns: auto 1fr; gap: 1.6mm 3mm; font-size: 9pt; line-height: 1.5; }
 .scenes dt { font-weight: 900; color: var(--accent); white-space: nowrap; }
 .scenes dd { text-wrap: pretty; }
@@ -831,7 +832,7 @@ body {
     <div><p class="term-yomi">この本を読む前に</p><h2 class="term-name">いつものアプリも、中身はWebページ</h2></div>
     <span class="term-chapter">はじめに</span>
   </header>
-  <p class="hitokoto">Slack も VS Code も、<em>この本の部品</em>で組み立てられている。</p>
+  <p class="hitokoto">チャットやメモのアプリも、<em>Webページと同じ部品</em>でできている。</p>
   <figure class="tip-fig">
     <div class="xray">
       <div class="app">
@@ -841,7 +842,7 @@ body {
             <span class="sec">▾ チャンネル</span>
             <span class="ch on"># お知らせ</span>
             <span class="ch"># 雑談</span>
-            <span class="sec">▸ DM</span>
+            <span class="sec">▸ 個人</span>
             <span class="sec">▸ アプリ</span>
           </div>
           <div class="app-main">
@@ -859,25 +860,25 @@ body {
         <span class="badge" style="right:2mm; top:6.2mm">15</span>
         <span class="badge" style="right:3mm; bottom:2.6mm">17</span>
       </div>
-      <div class="devtools">
-        <span class="dt-title">開発者ツールで見ると</span>
-        <p><span class="badge">14</span>&lt;details&gt;</p>
-        <p><span class="badge">15</span>&lt;div role="tab"&gt;</p>
-        <p><span class="badge">17</span>&lt;div class="toast"&gt;</p>
-        <p class="dt-note">14 アコーディオン、15 タブ、17 トースト。Webサイトと同じ部品が、そのまま使われている。</p>
+      <div class="legend">
+        <span class="lg-title">画面の部品には名前がある</span>
+        <p><span class="badge">14</span>押すと開いたり閉じたりする<b>アコーディオン</b></p>
+        <p><span class="badge">15</span>押すと中身が切り替わる<b>タブ</b></p>
+        <p><span class="badge">17</span>少しだけ出て自動で消える<b>トースト</b></p>
+        <p class="lg-note">番号は、この本で図解している用語の番号。</p>
       </div>
     </div>
-    <figcaption class="zu-cap">Slack・Discord・VS Code・Notion・Figma のデスクトップ版は <b>Electron</b> 製。<br>アプリの形をしているが、中では Chrome と同じエンジンが Webページを表示している。</figcaption>
+    <figcaption class="zu-cap">Slack や Notion などのパソコン用アプリは、じつは Webページをアプリの形に包んだもの。<br>この作り方を <b>Electron（エレクトロン）</b>という。だから部品も、Webサイトと同じ。</figcaption>
   </figure>
   <div>
     <h3 class="sub-h">こんな場面で、名前が効く</h3>
     <dl class="scenes">
-      <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」と頼めば、AIが Electron で<b>デスクトップアプリ</b>に仕上げる。画面の注文は、この本の言葉のまま。</dd>
-      <dt>不具合を伝える</dt><dd><span class="vague">「左の、開くやつが動かない」</span><br>→ 「サイドバーの<b>アコーディオン</b>が開かない」</dd>
+      <dt>自分用アプリを作る</dt><dd>「日報を書く小さなアプリが欲しい」とAIに頼めば、同じ Electron のしくみで<b>パソコン用アプリ</b>にしてくれる。画面の注文は、この本の言葉でできる。</dd>
+      <dt>不具合を伝える</dt><dd><span class="vague">「左の、開くやつが動かない」</span><br>→ 「左の<b>アコーディオン</b>が開かない」</dd>
       <dt>社内ツールを直す</dt><dd><span class="vague">「保存できたか分からない」</span><br>→ 「保存したら<b>トースト</b>で知らせて」</dd>
     </dl>
   </div>
-  <p class="tryit"><strong>試してみよう</strong><span>VS Code で［ヘルプ］→［開発者ツールの切り替え］。Chrome と同じ開発者ツールが開き、見慣れた画面が HTML の部品に分かれて見える。</span></p>
+  <p class="tryit"><strong>試してみよう</strong><span>Chrome でいつものサイトを開き、右クリック →［検証］。画面の横に、そのページの部品の一覧が出てくる。部品にマウスを乗せると、画面のどこかが光る。</span></p>
   <footer class="page-foot"><span>はじめに</span><span class="nombre">2</span></footer>
 </section>
 
