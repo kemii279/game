@@ -1,0 +1,1876 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI指示 図解帳 本文</title>
+<!--
+  『AIへの指示が一発で通る Webサイト用語図解帳』ページひな形
+  - 1 <section class="page"> = A5 1ページ。ブラウザの「印刷 → PDFに保存」でそのまま書き出せます
+    （用紙 A5 / 余白なし / 背景のグラフィックを ON）。
+  - 用語ページは「用語ページのひな形」コメントのブロックを複製して中身を差し替えます。
+  - 画面表示時だけ右下に品質チェック結果が出ます（印刷には出ません）。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@400;700;900&display=block" rel="stylesheet">
+<style>
+/* ===== デザイントークン ===== */
+:root {
+  --ink: #1f2328;
+  --ink-2: #4b5563;
+  --ink-3: #8a929c;
+  --paper: #ffffff;
+  --desk: #d7dbe0;
+  --line: #d9dde3;
+
+  --accent: #0e7c86;       /* 強調色は1色のみ */
+  --accent-marker: #bfe3e6; /* ひとことのマーカー */
+  --warn: #c2412d;         /* NG指示 */
+
+  /* ボックスモデル共通4色（全章で固定） */
+  --bm-content: #a8cbf5;
+  --bm-padding: #b9e3c6;
+  --bm-border: #f2cf6b;
+  --bm-margin: #f7c3a1;
+
+  /* コードブロック（グレー背景・全色コントラスト比 5.2 以上で確認済み） */
+  --code-bg: #eef0f3;
+  --code-edge: #d3d8df;
+  --tk-base: #1f2328;
+  --tk-comment: #5b6470;
+  --tk-punct: #4a5260;
+  --tk-tag: #b42318;
+  --tk-attr: #6d3fb0;
+  --tk-string: #0b6e3f;
+  --tk-prop: #0b57a8;
+  --tk-number: #a4480a;
+
+  --font: "Noto Sans JP", sans-serif;
+  --mono: "JetBrains Mono", "Noto Sans JP", monospace;
+
+  --page-w: 148mm;
+  --page-h: 210mm;
+  --margin-x: 11mm;
+  --margin-y: 11mm;
+}
+
+/* ===== 用紙 ===== */
+@page { size: A5; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 12pt;
+  line-height: 1.6;
+  line-break: strict;
+  word-break: auto-phrase; /* 和文を文節で改行 */
+  font-feature-settings: "palt" 0;
+}
+.page {
+  position: relative;
+  width: var(--page-w);
+  height: var(--page-h);
+  margin: 10mm auto;
+  padding: var(--margin-y) var(--margin-x) 9mm;
+  background: var(--paper);
+  box-shadow: 0 1mm 4mm rgba(0,0,0,.18);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+@media print {
+  body { background: var(--paper); }
+  .page { margin: 0; box-shadow: none; break-after: page; }
+  .page:last-of-type { break-after: auto; }
+  .qa-panel, .qa-flag { display: none !important; }
+}
+@media screen and (max-width: 600px) {
+  /* スマホで確認するとき：ページを画面幅に縮小 */
+  .page { zoom: calc(100vw / 160mm); margin: 4mm auto; }
+}
+
+/* ===== ページ共通パーツ ===== */
+.page-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 8pt;
+  color: var(--ink-2);
+  border-top: 0.3mm solid var(--line);
+  padding-top: 1.5mm;
+}
+.nombre { font-family: var(--mono); font-weight: 600; font-size: 9pt; color: var(--ink); }
+
+/* インラインコード */
+.ic {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  border: 0.2mm solid var(--code-edge);
+  border-radius: 1mm;
+  padding: 0 0.8mm;
+  white-space: nowrap;
+}
+
+/* ===== 用語ページ ===== */
+.term-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  column-gap: 3mm;
+  padding-bottom: 2mm;
+  border-bottom: 0.6mm solid var(--ink);
+}
+.term-no {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 22pt;
+  line-height: 1;
+  color: var(--accent);
+}
+.term-name { font-size: 20pt; font-weight: 900; line-height: 1.15; letter-spacing: 0.01em; }
+.term-name.long { font-size: 15pt; }  /* 長い用語名 */
+.term-yomi { font-size: 8.5pt; color: var(--ink-2); line-height: 1.2; margin-bottom: 0.6mm; } /* 読みは用語名の上 */
+.term-chapter {
+  font-size: 7.5pt;
+  color: var(--accent);
+  border: 0.3mm solid var(--accent);
+  border-radius: 99px;
+  padding: 0.3mm 2.2mm;
+  white-space: nowrap;
+  align-self: start;
+}
+.hitokoto {
+  text-wrap: pretty;
+  font-size: 13pt;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.hitokoto em { font-style: normal; background: linear-gradient(transparent 62%, var(--accent-marker) 62%); }
+
+/* 図：残りの高さをすべて使う（紙面の主役） */
+.zu {
+  flex: 1 1 auto;
+  min-height: 80mm;
+  background: #f7f8fa;
+  border: 0.3mm solid var(--line);
+  border-radius: 2mm;
+  padding: 4mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3mm;
+  position: relative;
+}
+.zu-cap { font-size: 8pt; color: var(--ink-2); text-align: center; line-height: 1.4; }
+
+/* NG指示＋伝わる指示：2段組
+   細線の枠で囲み、見出しは上辺の線を抜いて載せる（背景色なし）。
+   抜きは見出しに紙色の背景を敷いて線を隠す方式。 */
+.pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 4mm; padding-top: 1.6mm; }
+.card {
+  --card-color: var(--ink);
+  position: relative;
+  border: 0.35mm solid color-mix(in srgb, var(--card-color) 55%, var(--paper));
+  border-radius: 1.5mm;
+  padding: 3.4mm 3.2mm 2.6mm;
+  text-wrap: pretty;
+  font-size: 10pt;
+  line-height: 1.6;
+}
+.card h3 {
+  position: absolute;
+  top: 0;
+  left: 2.4mm;
+  transform: translateY(-50%);
+  background: var(--paper);
+  padding: 0 1.4mm;
+  font-size: 8.5pt;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--card-color);
+}
+.ng { --card-color: var(--warn); }
+.ok { --card-color: var(--accent); }
+.column { --card-color: var(--accent); }
+/* 指示文：NG はあいまいな言葉に波線、OK は効いた用語にマーカー */
+.say { font-weight: 700; text-indent: -0.5em; } /* 「を字面で左にそろえる */
+.nobr { white-space: nowrap; }
+.ng .say u { text-decoration: underline wavy var(--warn); text-decoration-thickness: 0.25mm; text-underline-offset: 0.9mm; }
+.ok .say b { font-weight: 900; background: linear-gradient(transparent 60%, var(--accent-marker) 60%); }
+.result { margin-top: 1.2mm; font-size: 8.5pt; line-height: 1.5; color: var(--ink-2); }
+
+/* ===== コードブロック ===== */
+.code {
+  position: relative;
+  background: var(--code-bg);
+  border: 0.3mm solid var(--code-edge);
+  border-left: 1.2mm solid var(--accent);
+  border-radius: 1.5mm;
+  padding: 5.2mm 3.4mm 2.6mm;
+  font-family: var(--mono);
+  font-size: 9pt;
+  line-height: 1.6;
+  color: var(--tk-base);
+  white-space: pre;
+  overflow: hidden;
+  tab-size: 2;
+  font-variant-ligatures: none;
+}
+.code::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 1.3mm;
+  right: 2.4mm;
+  font-family: var(--font);
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tk-comment);
+}
+.code code { font: inherit; }
+/* トークン（Prism のクラス名） */
+.token.comment, .token.prolog, .token.doctype { color: var(--tk-comment); }
+.token.punctuation { color: var(--tk-punct); }
+.token.tag, .token.keyword, .token.atrule, .token.rule, .token.important { color: var(--tk-tag); }
+.token.tag .token.punctuation { color: var(--tk-punct); }
+.token.attr-name, .token.selector, .token.function, .token.class-name { color: var(--tk-attr); }
+.token.attr-value, .token.string, .token.url { color: var(--tk-string); }
+.token.attr-value .token.punctuation { color: var(--tk-string); }
+.token.property { color: var(--tk-prop); }
+.token.number, .token.unit, .token.hexcode, .token.color, .token.boolean { color: var(--tk-number); }
+.token.tag, .token.property, .token.keyword, .token.function { font-weight: 600; }
+
+/* ===== 図の部品（ボックスモデル色） ===== */
+.legend { display: flex; justify-content: center; gap: 3.5mm; font-size: 7.5pt; color: var(--ink-2); }
+.legend i { display: inline-block; width: 3mm; height: 3mm; border-radius: 0.6mm; vertical-align: -0.4mm; margin-right: 1mm; }
+
+/* 04 padding */
+.pad-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  justify-items: center;
+  row-gap: 5mm;
+  column-gap: 6mm;
+  zoom: 1.45;
+}
+.pad-grid .row-label { font-size: 7.5pt; color: var(--ink-2); writing-mode: vertical-rl; letter-spacing: 0.15em; }
+.pad-grid .col-label { font-family: var(--mono); font-size: 8.5pt; font-weight: 600; }
+.btn-real {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 1.2mm;
+  line-height: 1.4;
+}
+.btn-real.p0 { padding: 0; }
+.btn-real.p16 { padding: 16px 24px; }
+.btn-anatomy {
+  position: relative;
+  background: var(--bm-padding);
+  outline: 0.8mm solid var(--bm-border);
+  font-size: 10pt;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.btn-anatomy span { display: block; background: var(--bm-content); }
+.btn-anatomy.p0 { padding: 0; }
+.btn-anatomy.p16 { padding: 16px 24px; }
+.dim {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 6.5pt;
+  font-weight: 600;
+  color: #1d5b33;
+  line-height: 1;
+}
+.dim.top { bottom: calc(100% + 1.2mm); left: 50%; transform: translateX(-50%); }
+.dim.left { right: calc(100% + 1.4mm); top: 50%; transform: translateY(-50%); }
+
+/* 12 パンくずリスト */
+.tree { display: flex; flex-direction: column; gap: 2.2mm; font-size: 9.5pt; }
+.tree .lv { display: flex; gap: 3mm; align-items: center; }
+.tree .lv-2 { padding-left: 12mm; }
+.tree .lv-3 { padding-left: 24mm; }
+.node {
+  border: 0.4mm solid var(--ink-3);
+  border-radius: 1.2mm;
+  padding: 0.8mm 3mm;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5mm;
+}
+.node.on { border-color: var(--accent); }
+.node.here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.node.off { color: var(--ink-3); border-style: dashed; }
+.elbow { width: 4mm; height: 4mm; border-left: 0.4mm solid var(--ink-3); border-bottom: 0.4mm solid var(--ink-3); margin-top: -3mm; margin-right: -1.5mm; }
+.badge {
+  display: inline-grid;
+  place-items: center;
+  width: 4.2mm; height: 4.2mm;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 6.5pt;
+  font-weight: 600;
+  line-height: 1;
+  flex: none;
+}
+.node.here .badge { background: #fff; color: var(--accent); }
+.browser {
+  background: #fff;
+  border: 0.4mm solid var(--ink-3);
+  border-radius: 2mm;
+  overflow: hidden;
+}
+.browser-bar { height: 4mm; background: #e6e9ed; display: flex; align-items: center; gap: 1mm; padding-left: 2mm; }
+.browser-bar i { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: #c3c8cf; }
+.crumbs { display: flex; align-items: center; gap: 1.5mm; padding: 2.4mm 3mm; font-size: 9pt; }
+.crumbs a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.6mm; display: inline-flex; gap: 1mm; align-items: center; }
+.crumbs .sep { color: var(--ink-3); }
+.crumbs strong { display: inline-flex; gap: 1mm; align-items: center; }
+.mock-lines { padding: 0 3mm 3mm; display: grid; gap: 1.4mm; }
+.mock-lines i { display: block; height: 2mm; background: #eceff2; border-radius: 1mm; }
+.arrow-down { text-align: center; font-size: 8pt; color: var(--ink-2); line-height: 1.2; }
+
+/* 13 モーダル */
+.screen { position: relative; height: 62mm; }
+.screen .browser { position: absolute; inset: 0; }
+.overlay { position: absolute; inset: 4mm 0 0 0; background: rgba(20,24,30,.55); }
+.modal {
+  position: absolute;
+  left: 50%; top: 55%;
+  transform: translate(-50%, -50%);
+  width: 64mm;
+  background: #fff;
+  border-radius: 2mm;
+  padding: 4mm 4mm 3.5mm;
+  box-shadow: 0 1.5mm 5mm rgba(0,0,0,.35);
+  font-size: 9pt;
+}
+.modal-title { font-weight: 700; margin-bottom: 3mm; }
+.modal-btns { display: flex; justify-content: flex-end; gap: 2mm; font-size: 8pt; }
+.modal-btns span { border-radius: 1mm; padding: 0.6mm 2.6mm; border: 0.3mm solid var(--line); }
+.modal-btns .primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.modal-x { position: absolute; top: 1.6mm; right: 2.4mm; font-size: 10pt; color: var(--ink-2); line-height: 1; }
+.pin { position: absolute; }
+.key { align-self: center; display: grid; grid-template-columns: auto auto; gap: 1mm 2mm; font-size: 8.5pt; align-items: center; justify-content: center; }
+
+/* ===== 表紙 ===== */
+.cover { justify-content: space-between; padding: 16mm 13mm 12mm; background: #fff; }
+.cover-vol { font-family: var(--mono); font-weight: 600; font-size: 9pt; color: var(--accent); letter-spacing: 0.1em; }
+.cover-lead { font-size: 11pt; font-weight: 700; color: var(--ink-2); margin-top: 3mm; }
+.cover-title { font-size: 24pt; font-weight: 900; line-height: 1.3; margin-top: 1mm; }
+.cover-title span { color: var(--accent); }
+.cover-art { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 5mm; }
+.cover-prompt {
+  position: relative;
+  font-size: 10pt;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+  border: 0.35mm solid var(--ink);
+  border-radius: 3mm;
+  padding: 2.4mm 4.5mm;
+  background: var(--paper);
+}
+.cover-prompt b { font-weight: 900; background: linear-gradient(transparent 60%, var(--accent-marker) 60%); }
+.cover-prompt::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -1.9mm;
+  width: 3.2mm; height: 3.2mm;
+  background: var(--paper);
+  border-right: 0.35mm solid var(--ink);
+  border-bottom: 0.35mm solid var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.nest { padding: 5mm; border-radius: 2mm; }
+.nest.m { background: var(--bm-margin); }
+.nest.b { background: var(--bm-border); padding: 2.2mm; }
+.nest.p { background: var(--bm-padding); padding: 7mm; }
+.nest.c { background: var(--bm-content); padding: 5mm 9mm; font-family: var(--mono); font-weight: 600; font-size: 12pt; text-align: center; }
+.cover-sub { font-size: 9.5pt; color: var(--ink-2); text-align: center; }
+.cover-author { display: flex; justify-content: space-between; font-size: 9pt; border-top: 0.6mm solid var(--ink); padding-top: 2mm; }
+
+/* ===== 目次（部品マップ） ===== */
+.toc-title { font-size: 15pt; font-weight: 900; }
+.toc-title small { font-size: 8.5pt; font-weight: 400; color: var(--ink-2); margin-left: 2mm; }
+.wire {
+  flex: 1 1 auto;
+  min-height: 80mm;
+  border: 0.4mm solid var(--ink-3);
+  border-radius: 2mm;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 7.5pt;
+  position: relative;
+}
+.w-head { display: flex; align-items: center; gap: 1.5mm; padding: 1.6mm 2.5mm; background: #e6e9ed; }
+.w-logo { font-weight: 900; }
+.w-nav { display: flex; align-items: center; gap: 2mm; margin-left: auto; margin-right: 2mm; color: var(--ink-2); }
+.w-burger { display: grid; gap: 0.6mm; width: 4mm; }
+.w-burger i { height: 0.5mm; background: var(--ink); }
+.w-crumb { display: flex; align-items: center; gap: 1.5mm; padding: 1.2mm 2.5mm; color: var(--ink-2); font-size: 6.5pt; }
+.w-hero { position: relative; margin: 0 2.5mm; height: 22mm; border-radius: 1.2mm; background: #b9c3cd; display: grid; place-items: center; }
+.w-hero .dots { position: absolute; bottom: 1.2mm; left: 50%; transform: translateX(-50%); display: flex; gap: 0.8mm; }
+.w-hero .dots i { width: 1.2mm; height: 1.2mm; border-radius: 50%; background: #fff; opacity: .55; }
+.w-hero .dots i:first-child { opacity: 1; }
+.w-hero .nav-l, .w-hero .nav-r { position: absolute; top: 50%; transform: translateY(-50%); font-size: 12pt; line-height: 1; color: #fff; }
+.w-hero .nav-l { left: 2mm; } .w-hero .nav-r { right: 2mm; }
+.w-cta-wrap { display: inline-flex; align-items: center; gap: 1.2mm; }
+.w-cta { background: var(--accent); color: #fff; font-weight: 700; border-radius: 1mm; padding: 0.8mm 3mm; }
+.w-fold { position: relative; margin-top: 2mm; border-top: 0.4mm dashed var(--warn); }
+.w-fold > span { position: absolute; right: 2mm; top: -2.4mm; display: inline-flex; align-items: center; gap: 1mm; font-size: 6pt; color: var(--warn); background: #fff; padding: 0 1mm; }
+.w-tabs { display: flex; align-items: center; margin: 3.5mm 2.5mm 0; border-bottom: 0.3mm solid var(--ink-3); }
+.w-tabs .badge { margin-right: 1.5mm; }
+.w-tabs span:not(.badge) { padding: 0.6mm 2.5mm; color: var(--ink-2); }
+.w-tabs span.on { color: var(--ink); font-weight: 700; border-bottom: 0.6mm solid var(--ink); }
+.w-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; margin: 2mm 2.5mm 0; }
+.w-cards div { border: 0.3mm solid var(--line); border-radius: 1mm; overflow: hidden; }
+.w-cards i { display: block; height: 17mm; background: #dde2e7; }
+.w-cards b { display: block; font-weight: 700; padding: 0.8mm 1.5mm; font-size: 6.5pt; }
+.w-acc { margin: 2.5mm 2.5mm 0; display: grid; grid-template-columns: auto 1fr; column-gap: 1.5mm; row-gap: 0.8mm; align-items: center; }
+.w-acc .badge { grid-row: 1 / span 2; }
+.w-acc div { grid-column: 2; border: 0.3mm solid var(--line); border-radius: 0.8mm; padding: 0.5mm 2mm; display: flex; justify-content: space-between; }
+.w-toast-wrap { align-self: flex-end; display: inline-flex; align-items: center; gap: 1.2mm; margin: auto 2.5mm 2.5mm 0; }
+.w-toast { background: var(--ink); color: #fff; border-radius: 1mm; padding: 0.8mm 2.5mm; font-size: 6.5pt; }
+.w-foot { display: flex; align-items: center; gap: 1.5mm; background: #3a4048; color: #dfe3e8; padding: 1.6mm 2.5mm; font-size: 6.5pt; }
+.wire .badge { background: var(--warn); }
+.toc-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-template-rows: repeat(10, auto);
+  column-gap: 5mm;
+  font-size: 8.5pt;
+  line-height: 1.45;
+}
+.toc-list li { list-style: none; display: flex; gap: 1.6mm; align-items: baseline; }
+.toc-list .n { font-family: var(--mono); font-weight: 600; color: var(--accent); width: 5mm; flex: none; }
+.toc-list .t { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.toc-list .t::after { content: " ………………………………………………"; color: var(--ink-3); }
+.toc-list .pg { font-family: var(--mono); font-size: 8pt; flex: none; }
+.toc-extra { display: flex; gap: 1.6mm; align-items: baseline; font-size: 8.5pt; line-height: 1.45; border-top: 0.3mm solid var(--line); padding-top: 1.2mm; }
+.toc-extra .n { font-weight: 900; color: var(--accent); flex: none; }
+.toc-extra .t { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.toc-extra .t::after { content: " ………………………………………………………………………………………………"; color: var(--ink-3); }
+.toc-extra .pg { font-family: var(--mono); font-size: 8pt; flex: none; }
+
+/* ===== 図：共通部品 ===== */
+.fig-row { display: flex; justify-content: center; align-items: center; gap: 4mm; }
+.fig-col { display: flex; flex-direction: column; align-items: center; gap: 1.5mm; }
+.fig-note { font-size: 7.5pt; color: var(--ink-2); text-align: center; line-height: 1.4; }
+.go { color: var(--ink-3); font-size: 13pt; line-height: 1; text-align: center; }
+.go small { display: block; font-size: 6.5pt; color: var(--ink-2); margin-top: 0.8mm; white-space: nowrap; }
+.phone { position: relative; width: 30mm; height: 54mm; border: 0.5mm solid var(--ink-3); border-radius: 3mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
+.phone.sm { width: 26mm; height: 46mm; }
+.phone-bar { flex: none; height: 6mm; display: flex; align-items: center; justify-content: space-between; padding: 0 2mm; background: #e6e9ed; font-size: 5.5pt; font-weight: 900; }
+.phone-body { flex: 1; padding: 2mm; display: grid; gap: 1.4mm; align-content: start; }
+.phone-body i, .lines i { display: block; height: 1.8mm; background: #e3e7eb; border-radius: 1mm; }
+.phone-body i.img { height: 12mm; background: #d3d9df; }
+.burger { display: grid; gap: 0.5mm; width: 3.4mm; }
+.burger i { height: 0.45mm; background: var(--ink); }
+.ring { outline: 0.6mm solid var(--warn); outline-offset: 0.8mm; border-radius: 0.6mm; }
+.dim-overlay { position: absolute; inset: 6mm 0 0 0; background: rgba(20,24,30,.45); }
+.drawer-panel { position: absolute; top: 6mm; right: 0; bottom: 0; width: 80%; background: #fff; border-left: 0.3mm solid var(--line); padding: 2.5mm; display: grid; align-content: start; gap: 2mm; font-size: 6.5pt; font-weight: 700; }
+.drawer-panel span { border-bottom: 0.3mm solid var(--line); padding-bottom: 1mm; }
+.x-icon { font-size: 8pt; line-height: 1; font-weight: 400; }
+.btn-mini { display: inline-block; background: var(--accent); color: #fff; font-weight: 700; border-radius: 1mm; padding: 0.5mm 3mm; font-size: 7.5pt; line-height: 1.5; }
+
+/* 01 要素 */
+.el-fig { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; align-items: center; }
+.mini-page { background: #fff; border: 0.4mm solid var(--ink-3); border-radius: 2mm; padding: 3mm; display: grid; gap: 2mm; }
+.el-box { position: relative; border: 0.35mm dashed var(--accent); border-radius: 1mm; padding: 1.2mm 2mm 1.2mm 7mm; font-size: 8.5pt; line-height: 1.4; }
+.el-box .badge, .el-code .badge { background: var(--accent); }
+.el-box .badge { position: absolute; left: 1.2mm; top: 50%; transform: translateY(-50%); }
+.el-box.img i { display: block; height: 13mm; background: #d3d9df; border-radius: 1mm; }
+.el-code { font-family: var(--mono); font-size: 7.5pt; display: grid; gap: 4.2mm; }
+.el-code p { display: flex; gap: 1.6mm; align-items: center; white-space: nowrap; }
+
+/* 02 タグとclass */
+.cls-row { display: flex; gap: 4mm; justify-content: center; padding-top: 3mm; }
+.c-card { position: relative; width: 31mm; background: #fff; border: 0.3mm solid var(--line); border-radius: 1.5mm; font-size: 8pt; }
+.c-card i { display: block; height: 15mm; background: #d3d9df; border-radius: 1.5mm 1.5mm 0 0; }
+.c-card b { display: block; padding: 1.2mm 2mm; font-weight: 700; }
+.c-card.pickup { background: #fff6d6; border-color: #e2c35a; }
+.nametags { position: absolute; top: 0; left: 1.5mm; transform: translateY(-55%); display: flex; gap: 0.8mm; }
+.nametag { font-family: var(--mono); font-size: 6pt; font-weight: 600; line-height: 1; background: var(--ink); color: #fff; border-radius: 0.8mm; padding: 0.7mm 1.2mm; }
+.nametag.hl { background: var(--accent); }
+.sel { font-family: var(--mono); font-size: 6.5pt; color: var(--ink-2); }
+
+/* 03 ボックスモデル */
+.bm { position: relative; border-radius: 1.5mm; }
+.bm-label { position: absolute; top: 0.9mm; left: 1.8mm; font-family: var(--mono); font-size: 6.5pt; font-weight: 600; line-height: 1; }
+.bm.m { background: var(--bm-margin); padding: 7mm 8mm; }
+.bm.b { background: var(--bm-border); padding: 3.8mm; border-radius: 1mm; }
+.bm.p { background: var(--bm-padding); padding: 7mm 9mm; border-radius: 0.6mm; }
+.bm.c { background: var(--bm-content); padding: 4.5mm 7mm; text-align: center; font-size: 9pt; font-weight: 700; border-radius: 0.6mm; }
+
+/* 05 margin */
+.m-demo { width: 44mm; }
+.m-card { height: 11mm; background: #fff; border: 0.3mm solid var(--ink-3); border-radius: 1.2mm; display: grid; place-items: center; font-size: 8pt; font-weight: 700; }
+.m-gap { height: 7mm; display: grid; place-items: center; background: var(--bm-margin); font-family: var(--mono); font-size: 6.5pt; font-weight: 600; }
+.m-overlap { position: relative; height: 10mm; }
+.m-overlap .a { position: absolute; left: 0; right: 0; top: 0; height: 6.5mm; background: rgba(247,195,161,.8); border-bottom: 0.3mm dashed #b8622a; }
+.m-overlap .b { position: absolute; left: 0; right: 0; bottom: 0; height: 10mm; background: rgba(247,195,161,.5); }
+.m-overlap span { position: absolute; font-family: var(--mono); font-size: 6pt; font-weight: 600; line-height: 1; }
+.m-overlap .la { top: 1.4mm; left: 1.6mm; }
+.m-overlap .lb { bottom: 1mm; right: 1.6mm; }
+
+/* 06 border */
+.bd-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; width: 100%; }
+.bd { height: 17mm; width: 100%; background: #fff; }
+.bd.s { border: 0.3mm solid var(--ink-2); }
+.bd.d { border: 0.3mm dashed var(--ink-2); }
+.bd.t { border: 1.1mm solid var(--ink-2); }
+.bd.r { border: 0.3mm solid var(--ink-2); border-radius: 2.1mm; }
+.bd-anat { display: flex; justify-content: center; align-items: flex-start; gap: 1.6mm; font-family: var(--mono); font-size: 9.5pt; font-weight: 600; }
+.bd-anat span { display: flex; flex-direction: column; align-items: center; gap: 0.8mm; }
+.bd-anat small { font-family: var(--font); font-size: 6.5pt; font-weight: 400; color: var(--ink-2); border-top: 0.3mm solid var(--ink-3); padding-top: 0.6mm; align-self: stretch; text-align: center; }
+
+/* 07 ブロックとインライン */
+.bi { display: grid; gap: 4mm; width: 100%; }
+.bi-title { font-size: 8pt; font-weight: 700; color: var(--ink-2); margin-bottom: 1.2mm; }
+.blk { background: #fff; border: 0.35mm dashed var(--accent); border-radius: 1mm; padding: 1.4mm 2mm; font-size: 8.5pt; margin-top: 1.2mm; display: flex; justify-content: space-between; align-items: center; }
+.blk code, .inl sup { font-family: var(--mono); font-size: 6pt; font-weight: 600; }
+.blk code { color: var(--accent); }
+.inl-box { background: #fff; border: 0.3mm solid var(--line); border-radius: 1mm; padding: 2mm 3mm; font-size: 9pt; line-height: 2.2; }
+.inl { outline: 0.35mm dashed var(--warn); outline-offset: 0.4mm; border-radius: 0.5mm; }
+.inl sup { color: var(--warn); margin-left: 0.4mm; vertical-align: 1.4mm; line-height: 0; }
+
+/* 08 ヘッダー・フッター */
+.pg-thumb { position: relative; width: 38mm; height: 58mm; border: 0.4mm solid var(--ink-3); border-radius: 1.5mm; overflow: hidden; display: flex; flex-direction: column; background: #fff; }
+.pg-h { flex: none; height: 8mm; background: #e6e9ed; display: flex; align-items: center; justify-content: space-between; padding: 0 2mm; font-size: 5.5pt; font-weight: 900; }
+.pg-h .dots { display: flex; gap: 1mm; }
+.pg-h .dots i { width: 4mm; height: 1.2mm; background: #b5bdc6; border-radius: 0.6mm; }
+.pg-body { flex: 1; padding: 2.5mm 2mm; display: grid; gap: 1.4mm; align-content: start; }
+.pg-body i { display: block; height: 1.8mm; background: #e3e7eb; border-radius: 1mm; }
+.pg-body i.img { height: 14mm; background: #d3d9df; }
+.pg-f { flex: none; height: 7mm; background: #3a4048; }
+.hl-band { position: absolute; left: 0; right: 0; border: 0.6mm solid var(--warn); }
+.hl-band.top { top: 0; height: 8mm; }
+.hl-band.bottom { bottom: 0; height: 7mm; }
+.pg-set { position: relative; display: flex; gap: 4mm; padding-right: 7mm; }
+.pg-set > .badge { position: absolute; right: 0; background: var(--warn); }
+
+/* 09 グローバルナビ */
+.gn-thumb { width: 33mm; border: 0.4mm solid var(--ink-3); border-radius: 1.5mm; overflow: hidden; background: #fff; }
+.gn-h { background: #e6e9ed; padding: 1.4mm 1.8mm 1.8mm; display: flex; flex-direction: column; gap: 1.2mm; }
+.gn-logo { font-size: 5.5pt; font-weight: 900; line-height: 1; }
+.gn-nav { display: flex; gap: 1.8mm; font-size: 5.5pt; line-height: 1.3; outline: 0.4mm dashed var(--accent); outline-offset: 0.7mm; border-radius: 0.4mm; }
+.gn-nav span.on { font-weight: 900; color: var(--accent); background: linear-gradient(var(--accent), var(--accent)) left bottom / 100% 0.45mm no-repeat; }
+.gn-body { height: 20mm; padding: 2mm 1.8mm; display: grid; gap: 1.2mm; align-content: start; }
+.gn-body i { display: block; height: 1.6mm; background: #e3e7eb; border-radius: 1mm; }
+.gn-body i.img { height: 10mm; background: #d3d9df; }
+
+/* 11 ドロワー */
+.mini-thumb { position: relative; width: 18mm; height: 28mm; border: 0.4mm solid var(--ink-3); border-radius: 1.5mm; overflow: hidden; background: #fff; }
+.mini-thumb .dim-overlay { inset: 0; }
+.mini-thumb .mm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 12mm; height: 9mm; background: #fff; border-radius: 1mm; }
+.mini-thumb .dd { position: absolute; top: 0; right: 0; bottom: 0; width: 65%; background: #fff; }
+.slide-in { position: absolute; top: 50%; left: 0.8mm; transform: translateY(-50%); color: #fff; font-size: 11pt; font-weight: 700; line-height: 1; }
+
+/* 14 アコーディオン */
+.acc-demo { width: 100%; background: #fff; border: 0.3mm solid var(--line); border-radius: 1.5mm; overflow: hidden; }
+.acc-q { display: flex; align-items: center; gap: 2mm; padding: 2.2mm 3mm; font-size: 9pt; font-weight: 700; border-top: 0.3mm solid var(--line); }
+.acc-q:first-child { border-top: 0; }
+.acc-q .pm { margin-left: auto; font-family: var(--mono); font-size: 11pt; line-height: 1; color: var(--accent); }
+.acc-a { padding: 0 3mm 2.6mm 9.2mm; font-size: 8.5pt; color: var(--ink-2); line-height: 1.5; }
+
+/* 15 タブ */
+.tab-demo { width: 46mm; background: #fff; border: 0.3mm solid var(--line); border-radius: 1.5mm; overflow: hidden; }
+.tab-bar { display: flex; border-bottom: 0.3mm solid var(--ink-3); font-size: 7.5pt; }
+.tab-bar span { flex: 1; text-align: center; padding: 1.4mm 0; color: var(--ink-2); }
+.tab-bar span.on { color: var(--ink); font-weight: 900; background: linear-gradient(var(--accent), var(--accent)) left bottom / 100% 0.7mm no-repeat; }
+.tab-panel { padding: 2.4mm; display: grid; gap: 1.8mm; font-size: 7.5pt; }
+.tab-panel div { display: flex; align-items: center; gap: 1.8mm; }
+.tab-panel i { width: 8mm; height: 6mm; background: #d3d9df; border-radius: 0.6mm; flex: none; }
+
+/* 16 カルーセル */
+.car { display: flex; justify-content: center; align-items: center; gap: 2.5mm; }
+.slide { flex: none; width: 28mm; height: 19mm; border-radius: 1.2mm; background: #b9c3cd; display: grid; place-items: center; color: #fff; font-size: 8pt; font-weight: 700; opacity: 0.4; }
+.slide.main { position: relative; width: 42mm; height: 27mm; background: #8f9cab; opacity: 1; outline: 0.7mm solid var(--accent); outline-offset: 1mm; }
+.car-dots { display: flex; justify-content: center; align-items: center; gap: 1.2mm; }
+.car-dots i { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: #c3c8cf; }
+.car-dots i.on { background: var(--accent); }
+.slide.main > .badge { position: absolute; top: -3.8mm; left: -3.8mm; }
+
+/* 17 トースト */
+.toast-pill { position: absolute; left: 50%; bottom: 3mm; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 5.5pt; border-radius: 1mm; padding: 0.8mm 2mm; white-space: nowrap; }
+.toast-gone { position: absolute; left: 50%; bottom: 3mm; transform: translateX(-50%); border: 0.3mm dashed var(--ink-3); color: var(--ink-3); font-size: 5.5pt; border-radius: 1mm; padding: 0.6mm 2mm; white-space: nowrap; }
+.phone-body .btn-mini { justify-self: start; font-size: 6pt; padding: 0.3mm 2.4mm; }
+
+/* 18 ファーストビュー */
+.fv-set { display: flex; gap: 7mm; align-items: flex-start; justify-content: center; }
+.fv { position: relative; background: #fff; border: 0.3mm solid var(--line); }
+.fv.pc { width: 62mm; }
+.fv.sp { width: 25mm; }
+.fv-head { height: 4mm; background: #e6e9ed; }
+.fv-hero { background: #9aa6b4; color: #fff; display: grid; place-content: center; justify-items: center; gap: 1mm; text-align: center; }
+.fv.pc .fv-hero { height: 24mm; }
+.fv.sp .fv-hero { height: 36mm; }
+.fv-hero b { font-size: 7pt; font-weight: 900; line-height: 1.2; }
+.fv-hero small { font-size: 5pt; line-height: 1.3; }
+.fv-hero .btn-mini { font-size: 5.5pt; padding: 0.2mm 2mm; }
+.fv-rest { padding: 2mm; display: grid; gap: 1.4mm; opacity: 0.45; }
+.fv-rest i { display: block; height: 1.6mm; background: #c9d0d7; border-radius: 1mm; }
+.fv-frame { position: absolute; left: -1.2mm; right: -1.2mm; top: -1.2mm; border: 0.6mm solid var(--accent); border-radius: 1.2mm; }
+.fv.pc .fv-frame { height: calc(28mm + 2.4mm); }
+.fv.sp .fv-frame { height: calc(40mm + 2.4mm); }
+
+/* 19 レスポンシブ */
+.rs-set { display: flex; gap: 7mm; align-items: flex-end; justify-content: center; }
+.rs-pc { width: 64mm; border: 0.4mm solid var(--ink-3); border-radius: 1.5mm; background: #fff; padding: 2.5mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8mm; }
+.rs-sp { width: 22mm; border: 0.4mm solid var(--ink-3); border-radius: 2mm; background: #fff; padding: 2mm; display: grid; gap: 1.6mm; }
+.rs-card { border: 0.3mm solid var(--line); border-radius: 0.8mm; overflow: hidden; }
+.rs-card i { display: block; height: 7mm; background: #d3d9df; }
+.rs-card b { display: block; height: 1.4mm; margin: 1mm; background: #e3e7eb; border-radius: 0.6mm; }
+.ruler { position: relative; width: 100%; height: 10mm; }
+.ruler .bar { position: absolute; left: 0; right: 0; top: 2.5mm; border-top: 0.4mm solid var(--ink-2); }
+.ruler .bar::after { content: ""; position: absolute; right: -0.2mm; top: -1.15mm; border: 1mm solid transparent; border-left: 1.6mm solid var(--ink-2); transform: translateX(100%); }
+.ruler .tick { position: absolute; left: 50%; top: 0.5mm; height: 4.5mm; border-left: 0.7mm solid var(--warn); }
+.ruler .tick-label { position: absolute; left: 50%; top: 5.6mm; transform: translateX(-50%); font-size: 7pt; font-weight: 700; color: var(--warn); white-space: nowrap; }
+.ruler .end { position: absolute; top: 5.6mm; font-size: 7pt; color: var(--ink-2); }
+.ruler .end.l { left: 0; }
+.ruler .end.r { right: 0; }
+
+/* 20 CTA */
+.cta-thumb { width: 46mm; border: 0.4mm solid var(--ink-3); border-radius: 1.5mm; background: #fff; padding: 2.5mm; display: grid; gap: 1.8mm; justify-items: center; }
+.cta-thumb i { display: block; justify-self: stretch; height: 1.6mm; background: #e3e7eb; border-radius: 1mm; }
+.cta-thumb i.img { height: 11mm; background: #d3d9df; }
+.cta-thumb .btns { display: flex; flex-wrap: wrap; gap: 1.2mm; justify-content: center; }
+.b-primary { background: var(--accent); color: #fff; font-weight: 900; font-size: 8pt; border-radius: 1mm; padding: 1.3mm 6mm; }
+.b-ghost { border: 0.3mm solid #c3c8cf; color: var(--ink-2); font-size: 6pt; border-radius: 1mm; padding: 0.6mm 2.4mm; }
+.b-loud { background: var(--accent); color: #fff; font-size: 6pt; font-weight: 900; border-radius: 1mm; padding: 0.6mm 2.4mm; }
+.verdict { font-size: 8pt; font-weight: 900; }
+.verdict.ok { color: var(--accent); }
+.verdict.ng { color: var(--warn); }
+
+/* ===== はじめに ===== */
+.intro .tip-head .term-name { font-size: 15pt; }
+.hub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4mm; }
+.hub-card { background: #fff; border: 0.3mm solid var(--line); border-radius: 1.5mm; padding: 2mm 2.4mm; font-size: 7.5pt; line-height: 1.45; color: var(--ink-2); }
+.hub-card b { display: block; font-size: 9pt; font-weight: 900; color: var(--ink); margin-bottom: 0.6mm; }
+.hub-core { grid-column: 1 / -1; background: var(--accent); color: #fff; border-radius: 1.5mm; padding: 2.6mm 3mm; display: flex; align-items: baseline; justify-content: center; gap: 3mm; flex-wrap: wrap; }
+.hub-core b { font-family: var(--mono); font-size: 11pt; font-weight: 600; }
+.hub-core span { font-size: 8pt; }
+.bullets b { font-weight: 900; }
+
+/* ===== 付録：AIを使いこなす知恵 ===== */
+.tip-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  column-gap: 3mm;
+  padding-bottom: 2mm;
+  border-bottom: 0.6mm solid var(--ink);
+}
+.tip-head .term-name { font-size: 16pt; line-height: 1.3; }
+.sub-h {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  font-size: 8.5pt;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 1.6mm;
+}
+.sub-h::after { content: ""; flex: 1; border-top: 0.35mm solid color-mix(in srgb, var(--accent) 55%, var(--paper)); }
+.tip-fig {
+  --fig-bg: #f7f8fa;
+  flex: 1 1 auto;
+  background: var(--fig-bg);
+  border: 0.3mm solid var(--line);
+  border-radius: 2mm;
+  padding: 4mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3mm;
+}
+.steps { list-style: none; display: grid; gap: 1.2mm; font-size: 10pt; line-height: 1.5; }
+.steps li { display: grid; grid-template-columns: 5.5mm 1fr; align-items: center; }
+.steps .badge { background: var(--accent); }
+.kw-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; line-height: 1.4; }
+.kw-table td { padding: 0.9mm 1.5mm; border-bottom: 0.3mm solid var(--line); }
+.kw-table td:first-child { color: var(--ink-2); width: 30mm; white-space: nowrap; padding-left: 0; }
+.kw-table td:last-child { font-weight: 700; }
+.bullets { list-style: none; display: grid; gap: 1mm; font-size: 9.5pt; line-height: 1.5; }
+.bullets li { padding-left: 3.5mm; position: relative; text-wrap: pretty; }
+.bullets li::before { content: ""; position: absolute; left: 0.6mm; top: 0.62em; width: 1.4mm; height: 1.4mm; border-radius: 50%; background: var(--accent); }
+
+/* 知恵1：スクショ → AIの答え */
+.ask-fig { display: grid; grid-template-columns: 1fr 7mm 1fr; align-items: center; }
+.ask-fig .arrow { text-align: center; font-size: 14pt; color: var(--ink-3); }
+.fig-label { font-size: 7.5pt; color: var(--ink-2); text-align: center; margin-bottom: 1.2mm; }
+.mini-screen { position: relative; height: 36mm; }
+.mini-screen .browser { position: absolute; inset: 0; }
+.mini-screen .overlay { inset: 4mm 0 0 0; background: rgba(20,24,30,.45); }
+.drawer { position: absolute; top: 4mm; right: 0; bottom: 0; width: 42%; background: #fff; border-left: 0.3mm solid var(--line); padding: 2.5mm 2mm; display: grid; align-content: start; gap: 1.6mm; }
+.drawer i { display: block; height: 1.8mm; background: #dfe3e8; border-radius: 1mm; }
+.red-ring { position: absolute; top: 5.5mm; right: -1.2mm; bottom: -1.2mm; width: 50%; border: 0.7mm solid var(--warn); border-radius: 50%; }
+.ai-bubble { border: 0.35mm solid var(--ink); border-radius: 3mm; padding: 2.6mm 3mm; font-size: 8.5pt; line-height: 1.6; background: #fff; }
+.ai-bubble b { font-size: 10pt; font-weight: 900; background: linear-gradient(transparent 60%, var(--accent-marker) 60%); }
+
+/* 知恵2：指示の5部品 */
+.formula { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.6mm; }
+.f-chip { position: relative; background: #fff; border: 0.35mm solid var(--accent); border-radius: 1.5mm; padding: 3.4mm 1mm 1.6mm; text-align: center; }
+.f-chip .badge { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: var(--accent); }
+.f-chip b { display: block; font-size: 9pt; font-weight: 900; line-height: 1.3; }
+.f-chip small { display: block; font-size: 6.5pt; color: var(--ink-2); line-height: 1.35; margin-top: 0.6mm; }
+.formula-ex { background: #fff; border-radius: 1.5mm; padding: 2.6mm 3mm 2.6mm calc(3mm + 0.5em); font-size: 10pt; font-weight: 700; line-height: 1.85; text-indent: -0.5em; }
+.formula-ex .badge { background: var(--accent); width: 3.6mm; height: 3.6mm; font-size: 6pt; margin: 0 0.6mm 0 0.4mm; vertical-align: 0.3mm; text-indent: 0; }
+
+/* 知恵3：モック → 本番 */
+.lane { position: relative; border: 0.35mm dashed var(--ink-3); border-radius: 2mm; padding: 4.2mm 3mm 3mm; }
+.lane.prod { border-style: solid; border-color: var(--accent); }
+.lane > h4 { position: absolute; top: 0; left: 2.4mm; transform: translateY(-50%); background: var(--fig-bg); padding: 0 1.4mm; font-size: 8pt; font-weight: 900; line-height: 1; color: var(--ink-2); }
+.lane.prod > h4 { color: var(--accent); }
+.lane-steps { display: flex; align-items: stretch; gap: 1mm; }
+.lane-steps .st { flex: 1 1 0; background: #fff; border: 0.3mm solid var(--line); border-radius: 1.2mm; padding: 1.6mm 2mm; font-size: 8.5pt; line-height: 1.45; display: flex; gap: 1.4mm; align-items: flex-start; }
+.lane-steps .st .badge { background: var(--accent); margin-top: 0.3mm; }
+.lane-steps .to { align-self: center; color: var(--ink-3); font-size: 10pt; }
+.lane-gap { text-align: center; font-size: 8pt; color: var(--ink-2); line-height: 1; }
+
+/* ===== 奥付 ===== */
+.colophon { justify-content: flex-end; }
+.colo-box { border-top: 0.6mm solid var(--ink); padding-top: 3mm; font-size: 8.5pt; }
+.colo-box h2 { font-size: 11pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.4; }
+.colo-box dl { display: grid; grid-template-columns: 18mm 1fr; row-gap: 1mm; }
+.colo-box dt { color: var(--ink-2); }
+.colo-note { margin-top: 4mm; font-size: 7.5pt; color: var(--ink-2); line-height: 1.6; }
+.afterword h2 { font-size: 13pt; font-weight: 900; margin-bottom: 2mm; }
+.afterword p { font-size: 10pt; line-height: 1.7; }
+.next-vol { margin-top: 6mm; }
+
+/* ===== 品質チェック表示（画面のみ） ===== */
+.qa-panel {
+  position: fixed;
+  right: 12px; bottom: 12px;
+  max-width: 340px;
+  max-height: 50vh;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  z-index: 10;
+}
+.qa-panel.ng { border-left-color: var(--warn); }
+.qa-panel b { display: block; margin-bottom: 4px; }
+.qa-panel li { margin-left: 16px; }
+.qa-flag { outline: 2px dashed var(--warn); outline-offset: 1px; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1p 表紙 ============ -->
+<section class="page cover" data-page="1" data-kind="cover">
+  <div>
+    <p class="cover-vol">VOL.1</p>
+    <p class="cover-lead">名前がわかれば、AIに頼める。</p>
+    <h1 class="cover-title">AIへの指示が<br><span>一発で通る</span><br>Webサイト用語<br>図解帳</h1>
+  </div>
+  <div class="cover-art" aria-hidden="true">
+    <p class="cover-prompt">「ボタンの <b>padding</b> を<br>上下16px・左右24pxにして」</p>
+    <div class="nest m"><div class="nest b"><div class="nest p"><div class="nest c">&lt;div&gt;</div></div></div></div>
+  </div>
+  <p class="cover-sub">部品の名前20語と、そのまま使える指示文</p>
+  <div class="cover-author"><span>著者名</span><span>サークル名</span></div>
+</section>
+
+<!-- ============ 2p はじめに ============ -->
+<section class="page intro" data-page="2" data-kind="intro">
+  <header class="tip-head">
+    <div><p class="term-yomi">この本を読む前に</p><h2 class="term-name">毎日使うアプリも、画面はWeb技術でできている</h2></div>
+    <span class="term-chapter">はじめに</span>
+  </header>
+  <p class="hitokoto">部品の名前を覚えると、<em>Webサイト以外の画面</em>もAIに頼めるようになる。</p>
+  <figure class="tip-fig">
+    <div class="hub">
+      <div class="hub-card"><b>Webサイト</b>お店や会社のサイト、ネットショップ</div>
+      <div class="hub-card"><b>デスクトップアプリ</b>VS Code・Slack・Discord・Figma・Notion</div>
+      <div class="hub-card"><b>業務ツール</b>予約管理、社内システムの管理画面</div>
+      <div class="hub-core"><b>HTML・CSS・JavaScript</b><span>どれも画面の中身は、この本で扱う Web技術</span></div>
+      <div class="hub-card"><b>スマホアプリの中</b>お知らせ・ヘルプ・キャンペーンのページ</div>
+      <div class="hub-card"><b>ブラウザ拡張</b>Chromeの拡張機能の画面</div>
+      <div class="hub-card"><b>テレビのアプリ</b>スマートテレビのアプリ画面</div>
+    </div>
+    <figcaption class="zu-cap">見た目は違っても、画面を作る部品と言葉は同じ。この本の20語がそのまま通じる。</figcaption>
+  </figure>
+  <div>
+    <h3 class="sub-h">この言葉を覚える3つの理由</h3>
+    <ul class="bullets">
+      <li>一度覚えれば、サイトにもアプリにも通じる<b>共通語</b>になる</li>
+      <li>Web技術は公開された実例や解説がとても多く、AIの得意分野。名前で頼むほど答えが正確になる</li>
+      <li>名前がわかれば、AIの答えを自分で検索して確かめられる</li>
+    </ul>
+  </div>
+  <div class="pair">
+    <div class="card column">
+      <h3>ミニ知識：Electron</h3>
+      <p>VS Code や Slack は、Electron という仕組みで作られている。中身は Chrome と同じエンジンで動く Webページ。</p>
+    </div>
+    <div class="card column">
+      <h3>試してみよう</h3>
+      <p>VS Code で［ヘルプ］→［開発者ツールの切り替え］を開くと、Chrome と同じ開発者ツールが出てくる。</p>
+    </div>
+  </div>
+  <footer class="page-foot"><span>はじめに</span><span class="nombre">2</span></footer>
+</section>
+
+<!-- ============ 3p 部品マップ目次 ============ -->
+<section class="page" data-page="3" data-kind="toc">
+  <h2 class="toc-title">部品マップ<small>数字＝用語番号</small></h2>
+  <div class="wire" aria-label="架空のカフェサイトの部品マップ">
+    <div class="w-head">
+      <span class="badge">08</span><span class="w-logo">CAFE KOMOREBI</span>
+      <span class="w-nav"><span class="badge">09</span><span>メニュー</span><span>店舗</span><span>予約</span></span>
+      <span class="badge">10</span><span class="w-burger"><i></i><i></i><i></i></span>
+    </div>
+    <div class="w-crumb"><span class="badge">12</span>ホーム ＞ メニュー ＞ ケーキ</div>
+    <div class="w-hero">
+      <span class="badge" style="position:absolute; left:1.5mm; top:1.5mm">16</span>
+      <span class="nav-l">‹</span><span class="w-cta-wrap"><span class="badge">20</span><span class="w-cta">予約する</span></span><span class="nav-r">›</span>
+      <span class="dots"><i></i><i></i><i></i></span>
+    </div>
+    <div class="w-fold"><span><span class="badge">18</span>ここまでがファーストビュー</span></div>
+    <div class="w-tabs"><span class="badge">15</span><span class="on">フード</span><span>ドリンク</span><span>スイーツ</span></div>
+    <div class="w-cards"><div><i></i><b>季節のタルト</b></div><div><i></i><b>チーズケーキ</b></div><div><i></i><b>ガトーショコラ</b></div></div>
+    <div class="w-acc"><span class="badge">14</span><div><span>テイクアウトできますか？</span><span>＋</span></div><div><span>駐車場はありますか？</span><span>＋</span></div></div>
+    <div class="w-toast-wrap"><span class="badge">17</span><span class="w-toast">予約しました</span></div>
+    <div class="w-foot"><span class="badge">08</span>© CAFE KOMOREBI ｜ 会社概要 ｜ お問い合わせ</div>
+  </div>
+  <ol class="toc-list">
+    <li><span class="n">01</span><span class="t">要素（element）</span><span class="pg">4</span></li>
+    <li><span class="n">02</span><span class="t">タグとclass</span><span class="pg">5</span></li>
+    <li><span class="n">03</span><span class="t">ボックスモデル</span><span class="pg">6</span></li>
+    <li><span class="n">04</span><span class="t">padding</span><span class="pg">7</span></li>
+    <li><span class="n">05</span><span class="t">margin</span><span class="pg">8</span></li>
+    <li><span class="n">06</span><span class="t">border</span><span class="pg">9</span></li>
+    <li><span class="n">07</span><span class="t">ブロックとインライン</span><span class="pg">10</span></li>
+    <li><span class="n">08</span><span class="t">ヘッダー・フッター</span><span class="pg">11</span></li>
+    <li><span class="n">09</span><span class="t">グローバルナビ</span><span class="pg">12</span></li>
+    <li><span class="n">10</span><span class="t">ハンバーガーメニュー</span><span class="pg">13</span></li>
+    <li><span class="n">11</span><span class="t">ドロワー</span><span class="pg">14</span></li>
+    <li><span class="n">12</span><span class="t">パンくずリスト</span><span class="pg">15</span></li>
+    <li><span class="n">13</span><span class="t">モーダル</span><span class="pg">16</span></li>
+    <li><span class="n">14</span><span class="t">アコーディオン</span><span class="pg">17</span></li>
+    <li><span class="n">15</span><span class="t">タブ</span><span class="pg">18</span></li>
+    <li><span class="n">16</span><span class="t">カルーセル</span><span class="pg">19</span></li>
+    <li><span class="n">17</span><span class="t">トースト</span><span class="pg">20</span></li>
+    <li><span class="n">18</span><span class="t">ファーストビュー</span><span class="pg">21</span></li>
+    <li><span class="n">19</span><span class="t">レスポンシブとブレイクポイント</span><span class="pg">22</span></li>
+    <li><span class="n">20</span><span class="t">CTA</span><span class="pg">23</span></li>
+  </ol>
+  <p class="toc-extra"><span class="n">付録</span><span class="t">AIを使いこなす知恵（名前の聞き方／指示の組み立て方／モックから本番へ）</span><span class="pg">24</span></p>
+  <footer class="page-foot"><span>目次</span><span class="nombre">3</span></footer>
+</section>
+
+<!-- ============ 用語ページのひな形（04 padding / CSS の見本） ============
+     必須6要素：.hitokoto / .zu / .ng（NG指示）/ .ok（伝わる指示）/ .code（AIが返すコード）/ .page-foot（関連）
+     ここから </section> までを複製して使う -->
+<!-- ============ 4p 01 要素 ============ -->
+<section class="page term" data-page="4" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">01</span>
+    <div><p class="term-yomi">element</p><h2 class="term-name">要素</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">ページを組み立てる<em>部品1個分</em>。タグで囲んだひとかたまり。</p>
+  <figure class="zu">
+    <div class="el-fig">
+      <div class="mini-page">
+        <div class="el-box"><span class="badge">1</span><b style="font-size:10.5pt">季節のタルト</b></div>
+        <div class="el-box"><span class="badge">2</span>旬の果物をたっぷりのせました。</div>
+        <div class="el-box img"><span class="badge">3</span><i></i></div>
+        <div class="el-box"><span class="badge">4</span><span class="btn-mini">予約する</span></div>
+      </div>
+      <div class="el-code">
+        <p><span class="badge">1</span>&lt;h1&gt;季節のタルト&lt;/h1&gt;</p>
+        <p><span class="badge">2</span>&lt;p&gt;旬の果物を…&lt;/p&gt;</p>
+        <p><span class="badge">3</span>&lt;img src="tart.jpg"&gt;</p>
+        <p><span class="badge">4</span>&lt;button&gt;予約する&lt;/button&gt;</p>
+      </div>
+    </div>
+    <figcaption class="zu-cap">画面の部品1つが、HTMLの要素1つ。番号どうしが対応している。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>上のほうの文字</u>を大きくして」</p>
+      <p class="result">→ 見出し・ロゴ・メニューのどれが変わるかわからない。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「ページ最上部の<b>見出し要素（h1）</b>だけ、文字サイズを32pxにして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">h1 {
+  font-size: 32px;
+}</code></pre>
+  <footer class="page-foot"><span>関連：02 タグとclass ／ 03 ボックスモデル</span><span class="nombre">4</span></footer>
+</section>
+
+<!-- ============ 5p 02 タグとclass ============ -->
+<section class="page term" data-page="5" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">02</span>
+    <div><p class="term-yomi">tag / クラス</p><h2 class="term-name">タグとclass</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">タグは部品の種類、classは<em>AIに場所を伝える名札</em>。</p>
+  <figure class="zu">
+    <div class="cls-row">
+      <div class="fig-col"><div class="c-card"><span class="nametags"><span class="nametag">card</span></span><i></i><b>チーズケーキ</b></div><span class="sel">div.card</span></div>
+      <div class="fig-col"><div class="c-card"><span class="nametags"><span class="nametag">card</span></span><i></i><b>季節のタルト</b></div><span class="sel">div.card</span></div>
+      <div class="fig-col"><div class="c-card pickup"><span class="nametags"><span class="nametag">card</span><span class="nametag hl">card--pickup</span></span><i></i><b>おすすめ</b></div><span class="sel">div.card.card--pickup</span></div>
+    </div>
+    <div class="key">
+      <span class="nametag" style="background:var(--ink-2)">div</span><span>タグ：部品の種類（ここでは「箱」）</span>
+      <span class="nametag">card</span><span>class：名札。同じ名札の部品は同じ見た目になる</span>
+    </div>
+    <figcaption class="zu-cap">名札（class）で指定すれば、並び順が変わっても狙った部品だけが変わる。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>2つ目のカード</u>だけ色を変えて」</p>
+      <p class="result">→ 並び順が変わると、別のカードの色が変わってしまう。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「classが<b>card--pickup</b>のカードだけ、背景を薄い黄色（#fff6d6）にして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.card--pickup {
+  background: #fff6d6;
+}</code></pre>
+  <footer class="page-foot"><span>関連：01 要素</span><span class="nombre">5</span></footer>
+</section>
+
+<!-- ============ 6p 03 ボックスモデル ============ -->
+<section class="page term" data-page="6" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">03</span>
+    <div><p class="term-yomi">box model</p><h2 class="term-name">ボックスモデル</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">どの要素も<em>中身・padding・border・margin</em>の4層の箱。</p>
+  <figure class="zu">
+    <div class="fig-row">
+      <div class="bm m"><span class="bm-label">margin</span>
+        <div class="bm b"><span class="bm-label">border</span>
+          <div class="bm p"><span class="bm-label">padding</span>
+            <div class="bm c">中身（content）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption class="zu-cap">内側から 中身 → padding → border → margin の順に重なる。色は第1章で共通。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>もうちょっと余白を空けて</u>」</p>
+      <p class="result">→ 内側か外側か、どの要素の余白かが伝わらない。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「カードの内側の<b>padding</b>は20pxのまま、カード同士の<b>margin</b>を24pxにして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.card {
+  padding: 20px; margin-bottom: 24px;
+}</code></pre>
+  <footer class="page-foot"><span>関連：04 padding ／ 05 margin ／ 06 border</span><span class="nombre">6</span></footer>
+</section>
+
+<section class="page term" data-page="7" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">04</span>
+    <div><p class="term-yomi">パディング</p><h2 class="term-name">padding</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">箱の<em>内側</em>、枠と中身の間のすき間。</p>
+  <figure class="zu">
+    <div class="pad-grid">
+      <span></span>
+      <span class="col-label">padding: 0</span>
+      <span class="col-label">padding: 16px 24px</span>
+      <span class="row-label">見た目</span>
+      <span class="btn-real p0">予約する</span>
+      <span class="btn-real p16">予約する</span>
+      <span class="row-label">しくみ</span>
+      <span class="btn-anatomy p0"><span>予約する</span></span>
+      <span class="btn-anatomy p16"><span>予約する</span><b class="dim top">16px</b><b class="dim left">24px</b></span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--bm-content)"></i>中身</span>
+      <span><i style="background:var(--bm-padding)"></i>padding</span>
+      <span><i style="background:var(--bm-border)"></i>border</span>
+    </div>
+    <figcaption class="zu-cap">緑の部分が padding。背景色は padding の部分にも塗られる。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「ボタンを<u>もうちょっと大きく</u>して」</p>
+      <p class="result">→ 文字サイズや幅まで変わり、思った形にならない。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「予約ボタンの文字サイズは変えずに、<b>padding</b> を上下16px・左右24pxに広げて」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.button {
+  padding: 16px 24px; /* 上下 左右 */
+}</code></pre>
+  <footer class="page-foot"><span>関連：03 ボックスモデル ／ 05 margin</span><span class="nombre">7</span></footer>
+</section>
+
+<!-- ============ 8p 05 margin ============ -->
+<section class="page term" data-page="8" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">05</span>
+    <div><p class="term-yomi">マージン</p><h2 class="term-name">margin</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">箱の<em>外側</em>、となりの箱との距離。</p>
+  <figure class="zu">
+    <div class="fig-row" style="gap:10mm; align-items:flex-start">
+      <div class="fig-col">
+        <p class="fig-label">カードの間が margin</p>
+        <div class="m-demo"><div class="m-card">カード A</div><div class="m-gap">margin 24px</div><div class="m-card">カード B</div></div>
+      </div>
+      <div class="fig-col">
+        <p class="fig-label">上下の margin は重なる</p>
+        <div class="m-demo"><div class="m-card">下に 20px</div><div class="m-overlap"><i class="b"></i><i class="a"></i><span class="la">20px</span><span class="lb">30px</span></div><div class="m-card">上に 30px</div></div>
+        <p class="fig-note">間は 50px ではなく 30px</p>
+      </div>
+    </div>
+    <figcaption class="zu-cap">margin は透明な外側の余白。上下に並ぶと足し算されず、大きいほうだけが効く。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>カードの間をもっと空けて</u>」</p>
+      <p class="result">→ padding が増え、カードの中がスカスカになることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「カード同士の間隔を<b>margin</b>で24pxにして。カードの内側の余白は変えないで」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.card + .card {
+  margin-top: 24px;
+}</code></pre>
+  <footer class="page-foot"><span>関連：03 ボックスモデル ／ 04 padding</span><span class="nombre">8</span></footer>
+</section>
+
+<!-- ============ 9p 06 border ============ -->
+<section class="page term" data-page="9" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">06</span>
+    <div><p class="term-yomi">ボーダー</p><h2 class="term-name">border</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto">padding と margin の境目に引く<em>枠線</em>。</p>
+  <figure class="zu">
+    <div class="bd-row">
+      <div class="fig-col"><div class="bd s"></div><span class="sel">1px solid</span></div>
+      <div class="fig-col"><div class="bd d"></div><span class="sel">1px dashed</span></div>
+      <div class="fig-col"><div class="bd t"></div><span class="sel">4px solid</span></div>
+      <div class="fig-col"><div class="bd r"></div><span class="sel">radius 8px</span></div>
+    </div>
+    <div class="bd-anat">
+      <span>border:</span>
+      <span>1px<small>太さ</small></span>
+      <span>solid<small>線の種類</small></span>
+      <span>#d0d5dc;<small>色</small></span>
+    </div>
+    <figcaption class="zu-cap">border は「太さ・線の種類・色」の3点セット。角の丸みは border-radius で別に指定する。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「カードを<u>枠で囲って丸くして</u>」</p>
+      <p class="result">→ 太さ・色・丸みが毎回ばらばらになる。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「カードに1pxのグレー（#d0d5dc）の<b>border</b>を付けて、角を<b>border-radius</b>で8px丸くして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.card {
+  border: 1px solid #d0d5dc; border-radius: 8px;
+}</code></pre>
+  <footer class="page-foot"><span>関連：03 ボックスモデル</span><span class="nombre">9</span></footer>
+</section>
+
+<!-- ============ 10p 07 ブロックとインライン ============ -->
+<section class="page term" data-page="10" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">07</span>
+    <div><p class="term-yomi">block / inline</p><h2 class="term-name">ブロックとインライン</h2></div>
+    <span class="term-chapter">第1章 箱のしくみ</span>
+  </header>
+  <p class="hitokoto"><em>縦に積む箱</em>と、<em>文字のように横へ流れる箱</em>。</p>
+  <figure class="zu">
+    <div class="bi">
+      <div>
+        <p class="bi-title">ブロック：横幅いっぱいに広がり、縦に積まれる</p>
+        <div class="blk"><span>季節のタルト</span><code>&lt;h2&gt;</code></div>
+        <div class="blk"><span>旬の果物をたっぷりのせました。</span><code>&lt;p&gt;</code></div>
+        <div class="blk"><span>カード</span><code>&lt;div&gt;</code></div>
+      </div>
+      <div>
+        <p class="bi-title">インライン：文字と同じように横へ流れる</p>
+        <div class="inl-box">営業は<span class="inl">10時〜18時</span>です。ご予約は<span class="inl">こちら</span>から、<span class="inl">前日まで</span>にどうぞ。</div>
+        <p class="fig-note" style="text-align:left; margin-top:1.2mm">赤い点線がインライン要素（span・a・strong など）</p>
+      </div>
+    </div>
+    <figcaption class="zu-cap">インラインの箱には幅や高さが効かない。ボタンの形にしたいときは inline-block にする。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「このリンクを<u>ボタンっぽく大きく</u>して」</p>
+      <p class="result">→ 文字が大きくなるだけで、ボタンの形にならない。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「ナビのリンク（aタグ）を<b>inline-block</b>にして、幅120px・高さ40pxのボタン型にして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">nav a { display: inline-block;
+  width: 120px; height: 40px; }</code></pre>
+  <footer class="page-foot"><span>関連：01 要素 ／ 09 グローバルナビ</span><span class="nombre">10</span></footer>
+</section>
+
+<!-- ============ 11p 08 ヘッダー・フッター ============ -->
+<section class="page term" data-page="11" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">08</span>
+    <div><p class="term-yomi">header / footer</p><h2 class="term-name">ヘッダー・フッター</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">どのページにも共通で出る<em>上端と下端の帯</em>。</p>
+  <figure class="zu">
+    <div class="fig-row">
+      <div class="pg-set">
+        <div class="fig-col"><div class="pg-thumb"><div class="pg-h">KOMOREBI<span class="dots"><i></i><i></i><i></i></span></div><div class="pg-body"><i class="img"></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div><div class="pg-f"></div><span class="hl-band top"></span><span class="hl-band bottom"></span></div><span class="fig-note">トップ</span></div>
+        <div class="fig-col"><div class="pg-thumb"><div class="pg-h">KOMOREBI<span class="dots"><i></i><i></i><i></i></span></div><div class="pg-body"><i style="width:50%"></i><i></i><i></i><i style="width:70%"></i><i></i><i style="width:85%"></i></div><div class="pg-f"></div><span class="hl-band top"></span><span class="hl-band bottom"></span></div><span class="fig-note">メニュー</span></div>
+        <span class="badge" style="top: 1.8mm">1</span>
+        <span class="badge" style="top: 51.5mm">2</span>
+      </div>
+    </div>
+    <div class="key">
+      <span class="badge" style="background:var(--warn)">1</span><span>ヘッダー：ロゴとメニューが入る上端の帯</span>
+      <span class="badge" style="background:var(--warn)">2</span><span>フッター：会社情報などが入る下端の帯</span>
+    </div>
+    <figcaption class="zu-cap">ページが変わっても、ヘッダーとフッターは同じものが出る。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>一番上のところ</u>をスクロールしてもついてくるようにして」</p>
+      <p class="result">→ 見出しやバナーが固定されることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「<b>ヘッダー</b>をスクロールしても画面上部に固定して。高さは64pxで、本文が隠れないようにして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">header {
+  position: sticky; top: 0; height: 64px;
+}</code></pre>
+  <footer class="page-foot"><span>関連：09 グローバルナビ ／ 18 ファーストビュー</span><span class="nombre">11</span></footer>
+</section>
+
+<!-- ============ 12p 09 グローバルナビ ============ -->
+<section class="page term" data-page="12" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">09</span>
+    <div><p class="term-yomi">global navigation</p><h2 class="term-name">グローバルナビ</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">サイトの<em>どのページにも出る</em>主要メニュー。</p>
+  <figure class="zu">
+    <div class="fig-row">
+      <div class="fig-col"><div class="gn-thumb"><div class="gn-h"><span class="gn-logo">KOMOREBI</span><span class="gn-nav"><span class="on">ホーム</span><span>メニュー</span><span>店舗</span></span></div><div class="gn-body"><i class="img"></i><i></i><i style="width:70%"></i></div></div><span class="fig-note">ホーム</span></div>
+      <div class="fig-col"><div class="gn-thumb"><div class="gn-h"><span class="gn-logo">KOMOREBI</span><span class="gn-nav"><span>ホーム</span><span class="on">メニュー</span><span>店舗</span></span></div><div class="gn-body"><i style="width:60%"></i><i></i><i></i><i style="width:80%"></i><i></i></div></div><span class="fig-note">メニュー</span></div>
+      <div class="fig-col"><div class="gn-thumb"><div class="gn-h"><span class="gn-logo">KOMOREBI</span><span class="gn-nav"><span>ホーム</span><span>メニュー</span><span class="on">店舗</span></span></div><div class="gn-body"><i class="img"></i><i style="width:85%"></i><i></i></div></div><span class="fig-note">店舗</span></div>
+    </div>
+    <figcaption class="zu-cap">点線の中がグローバルナビ。どのページでも同じ位置にあり、今いるページの項目だけ色と下線で示す。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>メニューのリンク</u>を増やして」</p>
+      <p class="result">→ ページ内の目次やフッターのリンクが増えることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「ヘッダーの<b>グローバルナビ</b>の最後に「アクセス」を追加して。今いるページの項目は下線で示して」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ HTML"><code class="language-html">&lt;nav class="global-nav"&gt;
+  &lt;a href="/menu" aria-current="page"&gt;メニュー&lt;/a&gt; …
+  &lt;a href="/access"&gt;アクセス&lt;/a&gt;&lt;/nav&gt;</code></pre>
+  <footer class="page-foot"><span>関連：08 ヘッダー・フッター ／ 10 ハンバーガーメニュー</span><span class="nombre">12</span></footer>
+</section>
+
+<!-- ============ 13p 10 ハンバーガーメニュー ============ -->
+<section class="page term" data-page="13" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">10</span>
+    <div><p class="term-yomi">hamburger menu</p><h2 class="term-name">ハンバーガーメニュー</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">メニューを開くための<em>三本線のボタン</em>。</p>
+  <figure class="zu">
+    <div class="fig-row" style="gap:6mm">
+      <div class="fig-col"><div class="phone"><div class="phone-bar">KOMOREBI<span class="burger ring"><i></i><i></i><i></i></span></div><div class="phone-body"><i class="img"></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div></div><span class="fig-note">閉じているとき</span></div>
+      <div class="go">→<small>タップ</small></div>
+      <div class="fig-col"><div class="phone"><div class="phone-bar">KOMOREBI<span class="x-icon">×</span></div><div class="phone-body"><i class="img"></i><i></i><i style="width:80%"></i></div><div class="dim-overlay"></div><div class="drawer-panel"><span>ホーム</span><span>メニュー</span><span>店舗</span><span>予約</span></div></div><span class="fig-note">開いたとき</span></div>
+    </div>
+    <figcaption class="zu-cap">赤で囲んだ三本線がハンバーガー（ボタン）。開いて出てくるメニュー本体はドロワー。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「スマホでは<u>メニューを三本線にして</u>」</p>
+      <p class="result">→ ボタンだけ作られ、押しても何も開かないことがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「幅768px以下ではナビを<b>ハンバーガーメニュー</b>にまとめて。押したら右からドロワーを開き、アイコンは×に変えて」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">@media (max-width: 768px) {
+  .global-nav { display: none; }
+  .hamburger { display: block; } }</code></pre>
+  <footer class="page-foot"><span>関連：11 ドロワー ／ 19 レスポンシブ</span><span class="nombre">13</span></footer>
+</section>
+
+<!-- ============ 14p 11 ドロワー ============ -->
+<section class="page term" data-page="14" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">11</span>
+    <div><p class="term-yomi">drawer</p><h2 class="term-name">ドロワー</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">画面の端から<em>引き出しのように</em>出てくるパネル。</p>
+  <figure class="zu">
+    <div class="fig-row" style="gap:9mm">
+      <div class="fig-col"><div class="phone"><div class="phone-bar">KOMOREBI<span class="x-icon">×</span></div><div class="phone-body"><i class="img"></i><i></i></div><div class="dim-overlay"></div><span class="slide-in" style="top:55%">←</span><div class="drawer-panel"><span>ホーム</span><span>メニュー</span><span>店舗</span><span>予約</span></div></div><span class="fig-note">右から出る（幅80%）</span></div>
+      <div class="fig-col" style="gap:3mm">
+        <div class="fig-col"><div class="mini-thumb"><div class="dim-overlay"></div><div class="dd"></div></div><span class="fig-note"><b>ドロワー</b>：端から出る</span></div>
+        <div class="fig-col"><div class="mini-thumb"><div class="dim-overlay"></div><div class="mm"></div></div><span class="fig-note"><b>モーダル</b>：中央に出る</span></div>
+      </div>
+    </div>
+    <figcaption class="zu-cap">出てくる位置で呼び名が変わる。後ろを暗くする幕（オーバーレイ）はどちらにも付く。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「メニューを<u>横からシュッと出して</u>」</p>
+      <p class="result">→ 出てくる向き・幅・速さがばらばらになる。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「メニューを右からの<b>ドロワー</b>にして。幅は画面の80%、0.3秒で開き、後ろは半透明の黒で暗くして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.drawer { width: 80%; transform: translateX(100%);
+  transition: transform 0.3s; }
+.drawer.is-open { transform: translateX(0); }</code></pre>
+  <footer class="page-foot"><span>関連：10 ハンバーガーメニュー ／ 13 モーダル</span><span class="nombre">14</span></footer>
+</section>
+
+<!-- ============ 用語ページ見本（12 パンくずリスト / HTML） ============ -->
+<section class="page term" data-page="15" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">12</span>
+    <div><p class="term-yomi">breadcrumb</p><h2 class="term-name">パンくずリスト</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">今いるページが<em>サイトのどこにあるか</em>を示す道しるべ。</p>
+  <figure class="zu">
+    <div class="tree">
+      <div class="lv lv-1"><span class="node on"><span class="badge">1</span>ホーム</span></div>
+      <div class="lv lv-2"><span class="elbow"></span><span class="node on"><span class="badge">2</span>メニュー</span><span class="node off">店舗</span></div>
+      <div class="lv lv-3"><span class="elbow"></span><span class="node here"><span class="badge">3</span>ケーキ（今ここ）</span><span class="node off">ドリンク</span></div>
+    </div>
+    <p class="arrow-down">▼ 画面では1行にまとめて表示</p>
+    <div class="browser">
+      <div class="browser-bar"><i></i><i></i><i></i></div>
+      <div class="crumbs">
+        <a><span class="badge">1</span>ホーム</a><span class="sep">＞</span>
+        <a><span class="badge">2</span>メニュー</a><span class="sep">＞</span>
+        <strong><span class="badge">3</span>ケーキ</strong>
+      </div>
+      <div class="mock-lines"><i style="width:70%"></i><i></i><i style="width:85%"></i></div>
+    </div>
+    <figcaption class="zu-cap">見てきた順番ではなく、サイトの階層をたどる。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>今どこにいるかわかるやつ</u>を上に付けて」</p>
+      <p class="result">→ 見出しや目次など、別の部品が作られる。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「ヘッダーの下に<b>パンくずリスト</b>を追加して。<span class="nobr">ホーム＞メニュー＞ケーキ</span>の順で、今いるページはリンクにしないで」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ HTML"><code class="language-html">&lt;nav aria-label="パンくずリスト"&gt;&lt;ol&gt;
+  &lt;li&gt;&lt;a href="/"&gt;ホーム&lt;/a&gt;&lt;/li&gt; …
+  &lt;li aria-current="page"&gt;ケーキ&lt;/li&gt;&lt;/ol&gt;&lt;/nav&gt;</code></pre>
+  <footer class="page-foot"><span>関連：09 グローバルナビ</span><span class="nombre">15</span></footer>
+</section>
+
+<!-- ============ 用語ページ見本（13 モーダル / JavaScript） ============ -->
+<section class="page term" data-page="16" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">13</span>
+    <div><p class="term-yomi">modal</p><h2 class="term-name">モーダル</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">閉じるまで<em>後ろの画面を操作できなくなる</em>小窓。</p>
+  <figure class="zu">
+    <div class="screen">
+      <div class="browser">
+        <div class="browser-bar"><i></i><i></i><i></i></div>
+        <div class="crumbs" style="color:var(--ink-2)">CAFE KOMOREBI</div>
+        <div class="mock-lines"><i style="height:14mm"></i><i style="width:80%"></i><i></i><i style="width:60%"></i><i style="width:75%"></i></div>
+      </div>
+      <div class="overlay"></div>
+      <span class="badge pin" style="left: 3mm; bottom: 3mm">3</span>
+      <div class="modal">
+        <span class="badge pin" style="left: -2mm; top: -2mm">1</span>
+        <p class="modal-title">この内容で予約しますか？</p>
+        <p style="font-size:8pt;color:var(--ink-2);margin-bottom:3mm">10月12日（日）14:00　2名</p>
+        <div class="modal-btns"><span>キャンセル</span><span class="primary">予約する</span></div>
+        <span class="modal-x">×</span>
+        <span class="badge pin" style="right: -2mm; top: -2mm">2</span>
+      </div>
+    </div>
+    <div class="key">
+      <span class="badge">1</span><span>小窓（モーダル本体）</span>
+      <span class="badge">2</span><span>×ボタン（閉じる）</span>
+      <span class="badge">3</span><span>オーバーレイ（後ろを暗くする幕）</span>
+    </div>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「ボタンを押したら<u>ポップアップ</u>を出して」</p>
+      <p class="result">→ 別ウィンドウや、ブラウザ標準の警告が出ることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「予約ボタンを押したら確認の<b>モーダル</b>を開いて。後ろは半透明の黒で暗くし、×ボタンと暗い部分のクリックで閉じて」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ JavaScript"><code class="language-javascript">dialog.showModal();       // モーダルとして開く
+dialog.onclick = (e) =&gt; { // 暗い部分で閉じる
+  if (e.target === dialog) dialog.close(); };</code></pre>
+  <footer class="page-foot"><span>関連：11 ドロワー ／ 17 トースト</span><span class="nombre">16</span></footer>
+</section>
+
+<!-- ============ 17p 14 アコーディオン ============ -->
+<section class="page term" data-page="17" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">14</span>
+    <div><p class="term-yomi">accordion</p><h2 class="term-name">アコーディオン</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">見出しを押すと<em>中身が開閉する</em>折りたたみ。</p>
+  <figure class="zu">
+    <div class="acc-demo">
+      <div class="acc-q"><span class="badge">1</span>テイクアウトできますか？<span class="pm">＋</span></div>
+      <div class="acc-q"><span class="badge">2</span>予約は何日前からできますか？<span class="pm">－</span></div>
+      <div class="acc-a">2か月前の同じ日から、Webで予約できます。</div>
+      <div class="acc-q"><span class="badge">1</span>駐車場はありますか？<span class="pm">＋</span></div>
+    </div>
+    <div class="key">
+      <span class="badge">1</span><span>閉じた状態：質問だけが見える（＋）</span>
+      <span class="badge">2</span><span>開いた状態：答えが下に出る（－）</span>
+    </div>
+    <figcaption class="zu-cap">よくある質問（FAQ）の定番。答えは同じ場所で、質問のすぐ下に開く。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「よくある質問を<u>クリックで出るように</u>して」</p>
+      <p class="result">→ 答えがモーダルや別ページで出ることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「よくある質問を<b>アコーディオン</b>にして。質問を押すと答えが下に開き、最初は全部閉じた状態にして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ HTML"><code class="language-html">&lt;details&gt;
+  &lt;summary&gt;テイクアウトできますか？&lt;/summary&gt;
+  はい、全メニューできます。&lt;/details&gt;</code></pre>
+  <footer class="page-foot"><span>関連：15 タブ</span><span class="nombre">17</span></footer>
+</section>
+
+<!-- ============ 18p 15 タブ ============ -->
+<section class="page term" data-page="18" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">15</span>
+    <div><p class="term-yomi">tab</p><h2 class="term-name">タブ</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">同じ場所で<em>中身を切り替える</em>見出しボタン。</p>
+  <figure class="zu">
+    <div class="fig-row">
+      <div class="tab-demo"><div class="tab-bar"><span class="on">フード</span><span>ドリンク</span><span>スイーツ</span></div><div class="tab-panel"><div><i></i>サンドイッチ</div><div><i></i>キッシュ</div><div><i></i>スープセット</div></div></div>
+      <div class="go">→<small>ドリンクを押す</small></div>
+      <div class="tab-demo"><div class="tab-bar"><span>フード</span><span class="on">ドリンク</span><span>スイーツ</span></div><div class="tab-panel"><div><i></i>カフェラテ</div><div><i></i>紅茶</div><div><i></i>レモネード</div></div></div>
+    </div>
+    <figcaption class="zu-cap">ページは移動せず、下の中身だけが切り替わる。ここがナビとの違い。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「メニューを<u>フードとドリンクで分けて</u>」</p>
+      <p class="result">→ 別ページに分かれたり、見出しで縦に並んだりする。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「メニュー一覧を<b>タブ</b>で<span class='nobr'>「フード／ドリンク／スイーツ」</span>に切り替えて。ページは移動させず、最初はフードを表示して」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ HTML"><code class="language-html">&lt;div role="tablist"&gt;
+  &lt;button role="tab" aria-selected="true"&gt;フード&lt;/button&gt;
+  &lt;button role="tab"&gt;ドリンク&lt;/button&gt; …&lt;/div&gt;</code></pre>
+  <footer class="page-foot"><span>関連：14 アコーディオン ／ 09 グローバルナビ</span><span class="nombre">18</span></footer>
+</section>
+
+<!-- ============ 19p 16 カルーセル ============ -->
+<section class="page term" data-page="19" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">16</span>
+    <div><p class="term-yomi">carousel</p><h2 class="term-name">カルーセル</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">画像などが<em>横に切り替わっていく</em>表示枠。</p>
+  <figure class="zu">
+    <div class="car">
+      <div class="slide">秋のタルト</div>
+      <div class="slide main"><span class="badge">1</span>新メニュー</div>
+      <div class="slide">予約受付中</div>
+    </div>
+    <div class="car-dots"><span class="badge" style="margin-right:1.5mm">2</span><i></i><i class="on"></i><i></i></div>
+    <div class="key">
+      <span class="badge">1</span><span>見える枠：1枚ずつ表示し、5秒ごとに次へ</span>
+      <span class="badge">2</span><span>ドット：今が何枚目かを示し、押すと切り替わる</span>
+    </div>
+    <figcaption class="zu-cap">横に並んだ画像のうち、枠の中の1枚だけが見えている。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「トップの画像を<u>スライダーにして</u>」</p>
+      <p class="result">→ 音量つまみのような「スライダー」部品が作られることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「トップの画像3枚を<b>カルーセル</b>にして。5秒ごとに自動で次へ進め、下のドットでも選べるようにして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ JavaScript"><code class="language-javascript">new Swiper('.hero', {
+  loop: true, autoplay: { delay: 5000 },
+  pagination: { el: '.swiper-pagination' } });</code></pre>
+  <footer class="page-foot"><span>関連：18 ファーストビュー</span><span class="nombre">19</span></footer>
+</section>
+
+<!-- ============ 20p 17 トースト ============ -->
+<section class="page term" data-page="20" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">17</span>
+    <div><p class="term-yomi">toast</p><h2 class="term-name">トースト</h2></div>
+    <span class="term-chapter">第2章 画面の部品</span>
+  </header>
+  <p class="hitokoto">操作の結果を<em>短く知らせて自動で消える</em>通知。</p>
+  <figure class="zu">
+    <div class="fig-row" style="gap:3mm">
+      <div class="fig-col"><div class="phone sm"><div class="phone-bar">KOMOREBI</div><div class="phone-body"><i></i><i style="width:70%"></i><i></i><span class="btn-mini ring">保存</span></div></div><span class="fig-note">① 保存を押す</span></div>
+      <div class="go">→</div>
+      <div class="fig-col"><div class="phone sm"><div class="phone-bar">KOMOREBI</div><div class="phone-body"><i></i><i style="width:70%"></i><i></i><span class="btn-mini">保存</span></div><span class="toast-pill">保存しました</span></div><span class="fig-note">② 下に出る</span></div>
+      <div class="go">→</div>
+      <div class="fig-col"><div class="phone sm"><div class="phone-bar">KOMOREBI</div><div class="phone-body"><i></i><i style="width:70%"></i><i></i><span class="btn-mini">保存</span></div><span class="toast-gone">消えた</span></div><span class="fig-note">③ 3秒で消える</span></div>
+    </div>
+    <figcaption class="zu-cap">出ている間も画面は操作できる。閉じるまで操作を止めるモーダルとの違い。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「保存したら<u>メッセージを出して</u>」</p>
+      <p class="result">→ 閉じるまで操作できない確認ダイアログが出ることがある。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「保存したら、画面の下中央に「保存しました」の<b>トースト</b>を出して。3秒で自動で消して」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ JavaScript"><code class="language-javascript">toast.textContent = '保存しました';
+toast.classList.add('show');
+setTimeout(() =&gt; toast.classList.remove('show'), 3000);</code></pre>
+  <footer class="page-foot"><span>関連：13 モーダル</span><span class="nombre">20</span></footer>
+</section>
+
+<!-- ============ 21p 18 ファーストビュー ============ -->
+<section class="page term" data-page="21" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">18</span>
+    <div><p class="term-yomi">first view</p><h2 class="term-name">ファーストビュー</h2></div>
+    <span class="term-chapter">第3章 ページの考え方</span>
+  </header>
+  <p class="hitokoto">ページを開いて<em>スクロールせずに見える</em>範囲。</p>
+  <figure class="zu">
+    <div class="fv-set">
+      <div class="fig-col"><div class="fv pc"><div class="fv-head"></div><div class="fv-hero"><b>CAFE KOMOREBI</b><small>木もれびの席で、ゆっくり</small><span class="btn-mini">予約する</span></div><div class="fv-rest"><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div><span class="fv-frame"></span></div><span class="fig-note">PC</span></div>
+      <div class="fig-col"><div class="fv sp"><div class="fv-head"></div><div class="fv-hero"><b>CAFE<br>KOMOREBI</b><small>木もれびの席で、<br>ゆっくり</small><span class="btn-mini">予約する</span></div><div class="fv-rest"><i></i><i style="width:70%"></i></div><span class="fv-frame"></span></div><span class="fig-note">スマホ</span></div>
+    </div>
+    <figcaption class="zu-cap">太枠の中がファーストビュー。画面の大きさで範囲が変わる。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>最初の画面をもっとインパクトある感じ</u>に」</p>
+      <p class="result">→ 何をどこまで変えるか伝わらず、全体が作り直される。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「<b>ファーストビュー</b>を画面の高さいっぱいにして、店名・キャッチコピー・予約ボタンだけを中央に置いて」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.hero {
+  min-height: 100svh; display: grid; place-items: center;
+}</code></pre>
+  <footer class="page-foot"><span>関連：19 レスポンシブ ／ 20 CTA</span><span class="nombre">21</span></footer>
+</section>
+
+<!-- ============ 22p 19 レスポンシブとブレイクポイント ============ -->
+<section class="page term" data-page="22" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">19</span>
+    <div><p class="term-yomi">responsive / breakpoint</p><h2 class="term-name long">レスポンシブとブレイクポイント</h2></div>
+    <span class="term-chapter">第3章 ページの考え方</span>
+  </header>
+  <p class="hitokoto">画面の幅に合わせて<em>レイアウトを組み替える</em>しくみ。</p>
+  <figure class="zu">
+    <div class="rs-set">
+      <div class="fig-col"><div class="rs-pc"><div class="rs-card"><i></i><b></b></div><div class="rs-card"><i></i><b></b></div><div class="rs-card"><i></i><b></b></div></div><span class="fig-note">PC：3列</span></div>
+      <div class="fig-col"><div class="rs-sp"><div class="rs-card"><i></i><b></b></div><div class="rs-card"><i></i><b></b></div><div class="rs-card"><i></i><b></b></div></div><span class="fig-note">スマホ：1列</span></div>
+    </div>
+    <div class="ruler"><span class="bar"></span><span class="tick"></span><span class="tick-label">ブレイクポイント 768px</span><span class="end l">画面の幅 狭い：1列</span><span class="end r">広い：3列</span></div>
+    <figcaption class="zu-cap">画面の幅が境目（ブレイクポイント）をまたぐと、レイアウトが切り替わる。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>スマホでも見やすく</u>して」</p>
+      <p class="result">→ 文字の縮小や一部の非表示など、何が変わるかわからない。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「カードを、幅768px以上では3列、それより狭いときは1列にして。<b>ブレイクポイント</b>は768pxの1つだけ」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.cards { display: grid; gap: 16px; }
+@media (min-width: 768px) {
+  .cards { grid-template-columns: repeat(3, 1fr); } }</code></pre>
+  <footer class="page-foot"><span>関連：10 ハンバーガーメニュー ／ 18 ファーストビュー</span><span class="nombre">22</span></footer>
+</section>
+
+<!-- ============ 23p 20 CTA ============ -->
+<section class="page term" data-page="23" data-kind="term">
+  <header class="term-head">
+    <span class="term-no">20</span>
+    <div><p class="term-yomi">シーティーエー（Call To Action）</p><h2 class="term-name">CTA</h2></div>
+    <span class="term-chapter">第3章 ページの考え方</span>
+  </header>
+  <p class="hitokoto">見た人に<em>とってほしい行動</em>へ誘うボタンやリンク。</p>
+  <figure class="zu">
+    <div class="fig-row" style="gap:7mm; align-items:flex-start">
+      <div class="fig-col"><span class="verdict ok">○ 目立つのは1つ</span><div class="cta-thumb"><i class="img"></i><i></i><i style="width:70%"></i><span class="b-primary">予約する</span><div class="btns"><span class="b-ghost">メニュー</span><span class="b-ghost">アクセス</span></div></div></div>
+      <div class="fig-col"><span class="verdict ng">× 全部が目立つ</span><div class="cta-thumb"><i class="img"></i><i></i><i style="width:70%"></i><div class="btns"><span class="b-loud">予約する</span><span class="b-loud">メニュー</span><span class="b-loud">アクセス</span><span class="b-loud">お知らせ</span><span class="b-loud">SNS</span></div></div></div>
+    </div>
+    <figcaption class="zu-cap">CTAは1ページに1つ。ほかのボタンを控えめにすると、押してほしいボタンが際立つ。</figcaption>
+  </figure>
+  <div class="pair">
+    <div class="card ng">
+      <h3>× NG指示</h3>
+      <p class="say">「<u>ボタンを目立たせて</u>」</p>
+      <p class="result">→ 全部のボタンが派手になり、どれも目立たなくなる。</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 伝わる指示</h3>
+      <p class="say">「このページの<b>CTA</b>は「予約する」ボタン1つだけ。メイン色で一番大きくし、ほかはグレーの枠線だけにして」</p>
+    </div>
+  </div>
+<pre class="code" data-lang="AIが返すコード（例）｜ CSS"><code class="language-css">.btn-primary { background: #0e7c86; font-size: 18px; }
+.btn { background: none; border: 1px solid #c3c8cf; }</code></pre>
+  <footer class="page-foot"><span>関連：18 ファーストビュー ／ 02 タグとclass</span><span class="nombre">23</span></footer>
+</section>
+
+
+<!-- ============ 24p 知恵1：名前を聞く ============ -->
+<section class="page tip" data-page="24" data-kind="tip">
+  <header class="tip-head">
+    <div><p class="term-yomi">AIを使いこなす知恵 1／3</p><h2 class="term-name">知らない部品は、AIに名前を聞く</h2></div>
+    <span class="term-chapter">付録</span>
+  </header>
+  <p class="hitokoto">名前さえわかれば、<em>検索も指示も</em>一気に楽になる。</p>
+  <figure class="tip-fig">
+    <div class="ask-fig">
+      <div>
+        <p class="fig-label">気になる部品をスクショして赤丸</p>
+        <div class="mini-screen">
+          <div class="browser"><div class="browser-bar"><i></i><i></i><i></i></div><div class="mock-lines" style="padding-top:3mm"><i style="height:9mm"></i><i></i><i style="width:70%"></i></div></div>
+          <div class="overlay"></div>
+          <div class="drawer"><i style="width:60%"></i><i></i><i style="width:80%"></i><i style="width:70%"></i></div>
+          <div class="red-ring"></div>
+        </div>
+      </div>
+      <span class="arrow">→</span>
+      <div>
+        <p class="fig-label">AIの答え</p>
+        <div class="ai-bubble"><b>ドロワーメニュー</b>です。<br>別名：オフキャンバスメニュー<br>英語：drawer menu</div>
+      </div>
+    </div>
+  </figure>
+  <div>
+    <h3 class="sub-h">手順</h3>
+    <ol class="steps">
+      <li><span class="badge">1</span><span>気になる部品をスクショして、赤丸で囲む</span></li>
+      <li><span class="badge">2</span><span>AIに「名前・別名・英語名」をまとめて聞く</span></li>
+      <li><span class="badge">3</span><span>英語名で画像検索して、同じ部品か確かめる</span></li>
+    </ol>
+  </div>
+  <div class="pair">
+    <div class="card ok">
+      <h3>○ 画像で聞く</h3>
+      <p class="say">「赤丸の部品はWebデザインで何と呼びますか？別名と、検索用の英語名も教えて」</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 言葉で聞く</h3>
+      <p class="say">「画面の右端からスライドして出てくるメニュー。後ろが暗くなる。これの名前は？」</p>
+      <p class="result">→ 場所・見た目・動きの3つを入れる</p>
+    </div>
+  </div>
+  <div>
+    <h3 class="sub-h">名前がわかったら、こう検索する</h3>
+    <table class="kw-table">
+      <tr><td>実物の例を見る</td><td>drawer menu UI example</td></tr>
+      <tr><td>作り方を知る</td><td>ドロワーメニュー CSS</td></tr>
+      <tr><td>似た部品と比べる</td><td>ドロワー モーダル 違い</td></tr>
+    </table>
+  </div>
+  <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">24</span></footer>
+</section>
+
+<!-- ============ 25p 知恵2：指示の組み立て方 ============ -->
+<section class="page tip" data-page="25" data-kind="tip">
+  <header class="tip-head">
+    <div><p class="term-yomi">AIを使いこなす知恵 2／3</p><h2 class="term-name">指示は5つの部品で組み立てる</h2></div>
+    <span class="term-chapter">付録</span>
+  </header>
+  <p class="hitokoto">5つがそろうと、<em>何度頼んでも同じ答え</em>が返ってくる。</p>
+  <figure class="tip-fig">
+    <div class="formula">
+      <div class="f-chip"><span class="badge">1</span><b>どこに</b><small>場所</small></div>
+      <div class="f-chip"><span class="badge">2</span><b>何を</b><small>部品の名前</small></div>
+      <div class="f-chip"><span class="badge">3</span><b>どうする</b><small>見た目・動き</small></div>
+      <div class="f-chip"><span class="badge">4</span><b>数値で</b><small>px・%・秒</small></div>
+      <div class="f-chip"><span class="badge">5</span><b>変えない</b><small>守るもの</small></div>
+    </div>
+    <p class="formula-ex">「<span class="nobr"><span class="badge">1</span>ヘッ</span>ダーの右端に<span class="nobr"><span class="badge">2</span>ハン</span>バーガーメニューを追加して。<span class="nobr"><span class="badge">3</span>タッ</span>プすると右からドロワーが出るようにして、<span class="nobr"><span class="badge">4</span>幅は</span>画面の80%、0.3秒で開く。<span class="nobr"><span class="badge">5</span>ロゴ</span>と文字サイズは変えないで」</p>
+  </figure>
+  <div>
+    <h3 class="sub-h">違ったときの直し方</h3>
+    <div class="pair">
+      <div class="card ng">
+        <h3>× NG指示</h3>
+        <p class="say">「<u>なんか違う。いい感じに</u>直して」</p>
+        <p class="result">→ 合っていた部分まで作り直される。</p>
+      </div>
+      <div class="card ok">
+        <h3>○ 伝わる指示</h3>
+        <p class="say">「ドロワーが左から出ているので、右から出して。ほかは変えないで」</p>
+        <p class="result">→ 1回の指示で直すのは1か所だけ。</p>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h3 class="sub-h">うまくいった指示は、ためて使い回す</h3>
+    <ul class="bullets">
+      <li>通った指示は、部品の名前ごとにメモしておく。次のサイトでもそのまま使える</li>
+      <li>色・角丸・フォントなどの共通ルールは、会話の最初にまとめて伝える<br><span class="ic">メイン色 #0e7c86 ／ 角丸 6px ／ 文字 Noto Sans JP</span></li>
+    </ul>
+  </div>
+  <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">25</span></footer>
+</section>
+
+<!-- ============ 26p 知恵3：モックから本番へ ============ -->
+<section class="page tip" data-page="26" data-kind="tip">
+  <header class="tip-head">
+    <div><p class="term-yomi">AIを使いこなす知恵 3／3</p><h2 class="term-name">モックで見た目を決めてから、本番に頼む</h2></div>
+    <span class="term-chapter">付録</span>
+  </header>
+  <p class="hitokoto">試行錯誤は<em>モック</em>で。本番には完成形だけを渡す。</p>
+  <figure class="tip-fig">
+    <div class="lane">
+      <h4>モック用（使い捨ての別プロジェクト）</h4>
+      <div class="lane-steps">
+        <div class="st"><span class="badge">1</span><span>AIに見た目だけのモックを作ってもらう</span></div>
+        <span class="to">→</span>
+        <div class="st"><span class="badge">2</span><span>ブラウザで見て、部品の名前で直す</span></div>
+      </div>
+    </div>
+    <p class="lane-gap">▼ 見た目がOKになったら、画面をスクショ</p>
+    <div class="lane prod">
+      <h4>本番プロジェクト</h4>
+      <div class="lane-steps">
+        <div class="st"><span class="badge">3</span><span>スクショを本番のAIに見せる</span></div>
+        <span class="to">→</span>
+        <div class="st"><span class="badge">4</span><span>今のコードのルールで実装してもらう</span></div>
+        <span class="to">→</span>
+        <div class="st"><span class="badge">5</span><span>モックと画面を見比べて確認</span></div>
+      </div>
+    </div>
+  </figure>
+  <div class="pair">
+    <div class="card ok">
+      <h3>○ モック用に頼む</h3>
+      <p class="say">「予約ページの見た目だけのモックを、1つのHTMLファイルで作って。保存などの動きはいらない」</p>
+    </div>
+    <div class="card ok">
+      <h3>○ 本番に頼む</h3>
+      <p class="say">「この画像と同じ見た目で予約ページを作って。今あるボタンとCSSを使い、新しい色は増やさないで」</p>
+    </div>
+  </div>
+  <div>
+    <h3 class="sub-h">こうする理由</h3>
+    <ul class="bullets">
+      <li>本番のコードが、試しては消す書き直しで散らからない</li>
+      <li>見た目の正解が画像で決まるので、AIの答えがぶれにくい</li>
+      <li>本番にはモックのコードを貼らず、画像だけを見せる。書き方が本番とずれて、混ざるのを防ぐ</li>
+    </ul>
+  </div>
+  <footer class="page-foot"><span>付録 AIを使いこなす知恵</span><span class="nombre">26</span></footer>
+</section>
+
+<!-- ============ 27p あとがき・奥付 ============ -->
+<section class="page colophon" data-page="27" data-kind="colophon">
+  <div class="afterword">
+    <h2>あとがき</h2>
+    <p>ここに、この本を作ったきっかけや、読んだ人に伝えたいことを3〜5行で書きます。</p>
+    <div class="card column next-vol"><h3>Vol.2 予告</h3><p>フォームまわり（プレースホルダー・バリデーション）、ツールチップ、スピナー、スケルトン、ページネーション、ファビコン</p></div>
+  </div>
+  <div style="flex:1"></div>
+  <div class="colo-box">
+    <h2>AIへの指示が一発で通る Webサイト用語図解帳 Vol.1</h2>
+    <dl>
+      <dt>発行日</dt><dd>2026年10月　初版</dd>
+      <dt>著者</dt><dd>著者名</dd>
+      <dt>発行</dt><dd>サークル名</dd>
+      <dt>連絡先</dt><dd>X：@your_id</dd>
+      <dt>フォント</dt><dd>Noto Sans JP ／ JetBrains Mono（SIL Open Font License）</dd>
+    </dl>
+    <p class="colo-note">本書の内容の無断転載・再配布を禁じます。<br>掲載のコードは自由に使えます。内容は執筆時点の情報です。</p>
+  </div>
+  <footer class="page-foot"><span>奥付</span><span class="nombre">27</span></footer>
+</section>
+
+<script>window.Prism = { manual: true };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css-extras.min.js"></script>
+<script>
+/* シンタックスハイライト（CDN に届かなくても、色なしで表示は崩れない） */
+if (window.Prism && Prism.highlightAll) Prism.highlightAll();
+
+/* ===== 品質チェック（画面表示のみ・印刷には出ない） ===== */
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(function () {
+  var issues = [];
+  var pages = document.querySelectorAll('.page');
+  var seen = {};
+  pages.forEach(function (p) {
+    var no = p.dataset.page;
+    if (seen[no]) issues.push(no + 'p：ページ番号が重複');
+    seen[no] = true;
+    var nombre = p.querySelector('.nombre');
+    if (p.dataset.kind !== 'cover' && (!nombre || nombre.textContent.trim() !== no)) issues.push(no + 'p：ノンブルと data-page が不一致');
+
+    // はみ出し：最後の要素がページ下余白に食い込んでいないか
+    var box = p.getBoundingClientRect();
+    var padB = parseFloat(getComputedStyle(p).paddingBottom);
+    var last = p.lastElementChild.getBoundingClientRect();
+    if (last.bottom > box.bottom - padB + 1) { issues.push(no + 'p：内容がページからはみ出し'); p.classList.add('qa-flag'); }
+
+    var padR = parseFloat(getComputedStyle(p).paddingRight), padL = parseFloat(getComputedStyle(p).paddingLeft);
+    var wide = Array.prototype.some.call(p.querySelectorAll('*'), function (el) {
+      var r = el.getBoundingClientRect();
+      return r.width > 0 && (r.right > box.right - padR + 1 || r.left < box.left + padL - 1);
+    });
+    if (wide && p.dataset.kind !== 'cover') { issues.push(no + 'p：内容が左右の余白にはみ出し'); p.classList.add('qa-flag'); }
+
+    if (p.dataset.kind === 'term') {
+      ['.hitokoto', '.zu', '.ng', '.ok', '.code', '.page-foot'].forEach(function (sel) {
+        if (!p.querySelector(sel)) issues.push(no + 'p：' + sel + ' がない');
+      });
+      var h = p.querySelector('.hitokoto');
+      if (h && h.textContent.trim().length > 40) { issues.push(no + 'p：ひとことが40字超（' + h.textContent.trim().length + '字）'); h.classList.add('qa-flag'); }
+      var zu = p.querySelector('.zu');
+      var usable = box.height - parseFloat(getComputedStyle(p).paddingTop) - padB;
+      if (zu && zu.getBoundingClientRect().height < usable * 0.4) { issues.push(no + 'p：図が小さい（本文域の40%未満）'); zu.classList.add('qa-flag'); }
+    }
+    p.querySelectorAll('.code').forEach(function (c) {
+      if (c.scrollWidth > c.clientWidth + 1) { issues.push(no + 'p：コードが横にはみ出し'); c.classList.add('qa-flag'); }
+      if (c.textContent.split('\n').length > 3) { issues.push(no + 'p：コードが3行超'); c.classList.add('qa-flag'); }
+      if (!c.querySelector('.token')) issues.push(no + 'p：ハイライト未適用（CDN未接続？）');
+    });
+    p.querySelectorAll('.card').forEach(function (c) {
+      if (c.scrollHeight > c.clientHeight + 1) { issues.push(no + 'p：カードの文字がはみ出し'); c.classList.add('qa-flag'); }
+    });
+  });
+  ['Noto Sans JP', 'JetBrains Mono'].forEach(function (f) {
+    if (document.fonts && !document.fonts.check('12pt "' + f + '"', 'あA')) issues.push('フォント未読込：' + f);
+  });
+  var panel = document.createElement('div');
+  panel.className = 'qa-panel' + (issues.length ? ' ng' : '');
+  panel.innerHTML = issues.length
+    ? '<b>品質チェック：' + issues.length + '件</b><ul>' + issues.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>'
+    : '<b>品質チェック：問題なし</b>' + pages.length + 'ページすべて基準内です。';
+  document.body.appendChild(panel);
+  window.__qa = issues;
+});
+</script>
+</body>
+</html>
